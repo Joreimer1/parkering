@@ -112,26 +112,12 @@ function mkICS(sum,ds,de,desc){
   document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
-function pling(){
-  try{
-    var ctx=new(window.AudioContext||window.webkitAudioContext)();
-    var o=ctx.createOscillator();
-    var g=ctx.createGain();
-    o.connect(g);g.connect(ctx.destination);
-    o.type="sine";
-    o.frequency.setValueAtTime(1400,ctx.currentTime);
-    g.gain.setValueAtTime(0.4,ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);
-    o.start(ctx.currentTime);
-    o.stop(ctx.currentTime+0.3);
-  }catch(e){}
-}
 
 function start(){
   setSt('<span class="spin"></span> Hamtar din position...');
   if(!navigator.geolocation){showErr("GPS saknas","Webbläsaren stoeder inte platstjanster.");return;}
   navigator.geolocation.getCurrentPosition(
-    function(p){lat=p.coords.latitude;lon=p.coords.longitude;pling();geocode();},
+    function(p){lat=p.coords.latitude;lon=p.coords.longitude;geocode();},
     function(e){
       var m={1:["Nekad","Ge Safari tillgang till plats under Installningar."],
              2:["Hittades ej","GPS saknas. Forsok utomhus."],
