@@ -80,9 +80,20 @@ function nxtDate(n){
 }
 
 function ptime(s){
-  if(!s||typeof s!=="string")return null;
-  var m=s.match(/(\d{1,2})[:.h](\d{2})/);
+  if(s===null||s===undefined||s==="")return null;
+  // API returnerar minuter från midnatt som heltal, t.ex. 600 = 06:00, 1380 = 23:00
+  if(typeof s==="number"||/^\d+$/.test(String(s))){
+    var mins=+s;
+    return{h:Math.floor(mins/60),m:mins%60};
+  }
+  var m=String(s).match(/(\d{1,2})[:.h](\d{2})/);
   return m?{h:+m[1],m:+m[2]}:null;
+}
+
+function fmtTime(s){
+  var t=ptime(s);
+  if(!t)return"";
+  return String(t.h).padStart(2,"0")+":"+String(t.m).padStart(2,"0");
 }
 
 function itsmp(d){
@@ -191,8 +202,9 @@ function render(features){
       var bl=dl===0?"Ikvall!":dl===1?"Imorgon":"Om "+dl+" dagar";
       badge='<span class="'+bc+'">'+bl+"</span>";
     }
+    var stFmt=fmtTime(day.st), enFmt=fmtTime(day.en);
     row.innerHTML='<div><div class="sday">'+day.ds+'</div>'
-      +'<div class="stim">'+day.st+(day.st&&day.en?"–":"")+day.en+"</div></div>"+badge;
+      +'<div class="stim">'+stFmt+(stFmt&&enFmt?"–":"")+enFmt+"</div></div>"+badge;
     le.appendChild(row);
     if(nd&&day.st){
       var t=ptime(day.st);if(!t)return;
@@ -203,9 +215,9 @@ function render(features){
       var when=dl===0?"ikvall":dl===1?"imorgon":day.ds.toLowerCase();
       var btn=document.createElement("button");
       btn.className="btn bp";
-      btn.textContent="Paminnelse "+when+" kl "+day.st;
+      btn.textContent="Paminnelse "+when+" kl "+stFmt;
       var _s="Flytta bilen - "+gata,_ds=itsmp(es),_de=itsmp(ee);
-      var _d="Servicenatt pa "+gata+". Flytta bilen innan kl "+day.st+".";
+      var _d="Servicenatt pa "+gata+". Flytta bilen innan kl "+stFmt+".";
       btn.onclick=function(){
         mkICS(_s,_ds,_de,_d);
         btn.textContent="Oppna .ics-filen for att spara i Kalender";
