@@ -1,449 +1,159 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="utf-8" />
-  <title>Parkering</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f2f2f7;
-      color: #1c1c1e;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 24px 16px;
-    }
-
-    h1 {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 6px;
-      text-align: center;
-    }
-
-    .subtitle {
-      font-size: 15px;
-      color: #8e8e93;
-      text-align: center;
-      margin-bottom: 28px;
-    }
-
-    .card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 20px;
-      width: 100%;
-      max-width: 420px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-      margin-bottom: 16px;
-    }
-
-    .card-label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: #8e8e93;
-      margin-bottom: 6px;
-    }
-
-    .card-value {
-      font-size: 20px;
-      font-weight: 600;
-    }
-
-    .card-sub {
-      font-size: 14px;
-      color: #636366;
-      margin-top: 4px;
-    }
-
-    .service-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid #f2f2f7;
-    }
-    .service-row:last-child { border-bottom: none; }
-
-    .service-day { font-weight: 600; font-size: 16px; }
-    .service-time { font-size: 14px; color: #636366; }
-    .service-next {
-      font-size: 12px;
-      background: #fff3cd;
-      color: #856404;
-      border-radius: 8px;
-      padding: 3px 8px;
-      font-weight: 600;
-    }
-    .service-next.urgent {
-      background: #f8d7da;
-      color: #842029;
-    }
-
-    .btn {
-      display: block;
-      width: 100%;
-      max-width: 420px;
-      padding: 16px;
-      border-radius: 14px;
-      border: none;
-      font-size: 17px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-bottom: 12px;
-      transition: opacity 0.15s;
-    }
-    .btn:active { opacity: 0.75; }
-
-    .btn-primary   { background: #007aff; color: #fff; }
-    .btn-secondary { background: #e5e5ea; color: #1c1c1e; }
-    .btn-success   { background: #34c759; color: #fff; }
-
-    .status {
-      text-align: center;
-      font-size: 15px;
-      color: #636366;
-      margin: 16px 0;
-      max-width: 420px;
-    }
-
-    .spinner {
-      display: inline-block;
-      width: 20px; height: 20px;
-      border: 3px solid #e5e5ea;
-      border-top-color: #007aff;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      vertical-align: middle;
-      margin-right: 8px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .icon { font-size: 48px; text-align: center; margin-bottom: 12px; }
-
-    #confirmation-section,
-    #result-section,
-    #calendar-section,
-    #error-section { display: none; width: 100%; max-width: 420px; }
-
-    .error-box {
-      background: #fff;
-      border-radius: 16px;
-      padding: 24px 20px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-      text-align: center;
-    }
-    .error-box p { font-size: 15px; color: #636366; margin-top: 8px; line-height: 1.5; }
-  </style>
+<meta charset="utf-8"/>
+<title>Parkering</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f2f2f7;color:#1c1c1e;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px}
+h1{font-size:28px;font-weight:700;margin-bottom:28px;text-align:center}
+.card{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:420px;box-shadow:0 2px 12px rgba(0,0,0,.07);margin-bottom:16px}
+.lbl{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#8e8e93;margin-bottom:6px}
+.val{font-size:20px;font-weight:600}
+.sub{font-size:14px;color:#636366;margin-top:4px}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f2f2f7}
+.srow:last-child{border-bottom:none}
+.sday{font-weight:600;font-size:16px}
+.stim{font-size:14px;color:#636366}
+.badge{font-size:12px;border-radius:8px;padding:3px 8px;font-weight:600;background:#fff3cd;color:#856404}
+.urg{background:#f8d7da;color:#842029}
+.btn{display:block;width:100%;max-width:420px;padding:16px;border-radius:14px;border:none;font-size:17px;font-weight:600;cursor:pointer;margin-bottom:12px;transition:opacity .15s}
+.btn:active{opacity:.75}
+.bp{background:#007aff;color:#fff}
+.bs{background:#e5e5ea;color:#1c1c1e}
+.bg{background:#34c759;color:#fff}
+.spin{display:inline-block;width:20px;height:20px;border:3px solid #e5e5ea;border-top-color:#007aff;border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.status{text-align:center;font-size:15px;color:#636366;margin:8px 0 20px;max-width:420px;line-height:1.5}
+.sec{display:none;width:100%;max-width:420px}
+</style>
 </head>
 <body>
-
-<h1>🅿️ Parkering</h1>
-<p class="subtitle">Kontrollerar parkeringsregler…</p>
-
-<div class="status" id="status">
-  <span class="spinner"></span> Hämtar din position…
-</div>
-
-<!-- STEG 1: Bekräfta gata -->
-<div id="confirmation-section">
+<h1>Parkering</h1>
+<div class="status" id="STATUS"><span class="spin"></span> Startar...</div>
+<div class="sec" id="SEC1">
   <div class="card">
-    <div class="card-label">Du är parkerad på</div>
-    <div class="card-value" id="street-name">–</div>
-    <div class="card-sub" id="street-address"></div>
+    <div class="lbl">Du ar parkerad pa</div>
+    <div class="val" id="SEC1street"></div>
+    <div class="sub" id="SEC1addr"></div>
   </div>
-  <button class="btn btn-success" onclick="confirmStreet()">✓ Ja, det stämmer</button>
-  <button class="btn btn-secondary" onclick="resetApp()">✗ Fel gata – försök igen</button>
+  <button class="btn bg" onclick="onConfirm()">Ja, det stammer</button>
+  <button class="btn bs" onclick="onRetry()">Fel gata - forsok igen</button>
 </div>
-
-<!-- STEG 2: Servicedagar -->
-<div id="result-section">
-  <div class="card">
-    <div class="card-label">Parkerad på</div>
-    <div class="card-value" id="result-street">–</div>
-  </div>
-  <div class="card">
-    <div class="card-label">Servicenätter</div>
-    <div id="service-list"></div>
-  </div>
+<div class="sec" id="SEC2">
+  <div class="card"><div class="lbl">Parkerad pa</div><div class="val" id="SEC2street"></div></div>
+  <div class="card"><div class="lbl">Servicenatter</div><div id="SEC2list"></div></div>
+  <div id="SEC2btns"></div>
+  <button class="btn bs" style="margin-top:4px" onclick="onRetry()">Ny parkering</button>
 </div>
-
-<!-- STEG 3: Kalenderknappar -->
-<div id="calendar-section">
-  <div id="reminder-buttons"></div>
-  <button class="btn btn-secondary" style="margin-top:4px" onclick="resetApp()">↩ Parkera på annan plats</button>
-</div>
-
-<!-- FEL -->
-<div id="error-section">
-  <div class="error-box">
-    <div class="icon">😕</div>
-    <strong id="error-title">Något gick fel</strong>
-    <p id="error-msg"></p>
-    <button class="btn btn-primary" style="margin-top:16px" onclick="resetApp()">Försök igen</button>
+<div class="sec" id="SEC3">
+  <div class="card" style="text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">!</div>
+    <strong id="SEC3t"></strong>
+    <p id="SEC3m" style="font-size:15px;color:#636366;margin-top:8px;line-height:1.5"></p>
+    <button class="btn bp" style="margin-top:16px" onclick="onRetry()">Forsok igen</button>
   </div>
 </div>
-
 <script>
-const API_KEY    = "bdbc0530-408c-4ac0-8ad4-bcda19d40d6e";
-const WORKER_URL = "https://gentle-unit-77d4.johan-oestberg.workers.dev";
-const BASE       = "https://openparking.stockholm.se/LTF-Tolken/v1";
+var AK="bdbc0530-408c-4ac0-8ad4-bcda19d40d6e";
+var WU="https://gentle-unit-77d4.johan-oestberg.workers.dev";
+var BA="https://openparking.stockholm.se/LTF-Tolken/v1";
+var lat,lon,gata;
 
-let currentLat, currentLon, currentStreet;
+function setSt(h){var e=document.getElementById("STATUS");e.innerHTML=h;e.style.display=h?"block":"none";}
+function showSec(id){["SEC1","SEC2","SEC3"].forEach(function(s){document.getElementById(s).style.display="none";});if(id)document.getElementById(id).style.display="block";}
+function showErr(t,m){setSt("");document.getElementById("SEC3t").textContent=t;document.getElementById("SEC3m").textContent=m;showSec("SEC3");}
+function onRetry(){showSec(null);start();}
 
-// ── UI-hjälpare ──────────────────────────────────────────────────────────────
-
-function setStatus(html) {
-  const el = document.getElementById('status');
-  el.innerHTML = html;
-  el.style.display = html ? 'block' : 'none';
+var DM={mandag:1,tisdag:2,onsdag:3,torsdag:4,fredag:5,lordag:6,sondag:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6,sunday:0};
+function dnum(s){if(!s)return null;var k=s.toLowerCase().trim().replace(/[åä]/g,"a").replace(/ö/g,"o");return DM.hasOwnProperty(k)?DM[k]:null;}
+function nxtDate(n){var now=new Date(),diff=((n-now.getDay()+7)%7)||7,d=new Date(now);d.setDate(d.getDate()+diff);return d;}
+function ptime(s){var m=s&&s.match(/(\d{1,2})[:.h](\d{2})/);return m?{h:+m[1],m:+m[2]}:null;}
+function itsmp(d){function z(n){return String(n).padStart(2,"0");}return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"T"+z(d.getHours())+z(d.getMinutes())+"00";}
+function mkICS(sum,ds,de,desc){
+  var c=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Pk//SV","BEGIN:VEVENT","UID:p"+Date.now()+"@pk","DTSTAMP:"+itsmp(new Date()),"DTSTART:"+ds,"DTEND:"+de,"SUMMARY:"+sum,"DESCRIPTION:"+desc,"BEGIN:VALARM","TRIGGER:-PT30M","ACTION:DISPLAY","DESCRIPTION:"+sum,"END:VALARM","END:VEVENT","END:VCALENDAR"].join("\r\n");
+  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([c],{type:"text/calendar"}));a.download="parkering.ics";document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
-function showSection(id) {
-  ['confirmation-section','result-section','calendar-section','error-section']
-    .forEach(s => document.getElementById(s).style.display = 'none');
-  if (id) document.getElementById(id).style.display = '';
+function start(){
+  setSt('<span class="spin"></span> Hamtar din position...');
+  if(!navigator.geolocation){showErr("GPS saknas","Webbläsaren stoeder inte platstjanster.");return;}
+  navigator.geolocation.getCurrentPosition(
+    function(p){lat=p.coords.latitude;lon=p.coords.longitude;geocode();},
+    function(e){var m={1:["Nekad","Ge Safari tillgang till plats under Installningar."],2:["Hittades ej","GPS saknas. Forsok utomhus."],3:["Timeout","Forsok igen."]};var r=m[e.code]||["Fel","Kod "+e.code];showErr(r[0],r[1]);},
+    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+  );
 }
 
-function showError(title, msg) {
-  setStatus('');
-  document.getElementById('error-title').textContent = title;
-  document.getElementById('error-msg').textContent   = msg;
-  showSection('error-section');
+function geocode(){
+  setSt('<span class="spin"></span> Identifierar gatan...');
+  fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat="+lat+"&lon="+lon+"&addressdetails=1",{headers:{"Accept":"application/json","User-Agent":"parkeringsapp/1.0"}})
+  .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+  .then(function(j){
+    var a=j.address||{};
+    var s=a.road||a.pedestrian||a.residential||a.street||a.quarter;
+    if(!s){showErr("Okand gata","Ingen gatuadress hittades.");return;}
+    gata=s;
+    var full=a.house_number?s+" "+a.house_number:s;
+    var sub=a.suburb||a.city_district||"";
+    document.getElementById("SEC1street").textContent=s;
+    document.getElementById("SEC1addr").textContent=sub?full+", "+sub:full;
+    setSt("");showSec("SEC1");
+  })
+  .catch(function(e){showErr("Adressfel",e.message);});
 }
 
-function resetApp() {
-  showSection(null);
-  setStatus('<span class="spinner"></span> Hämtar din position…');
-  startApp();
+function onConfirm(){
+  showSec(null);setSt('<span class="spin"></span> Hamtar servicedagar...');
+  var tgt=BA+"/servicedagar/street/"+encodeURIComponent(gata)+"?outputFormat=json&apiKey="+AK;
+  var url=WU.replace(/\/+$/,"")+"/?target="+encodeURIComponent(tgt);
+  fetch(url,{headers:{"Accept":"application/json"}})
+  .then(function(r){return r.text().then(function(t){if(!r.ok)throw new Error("API "+r.status);return JSON.parse(t);});})
+  .then(function(data){
+    var f=(data&&data.type==="FeatureCollection")?data.features:Array.isArray(data)?data:Array.isArray(data.features)?data.features:[];
+    document.getElementById("SEC2street").textContent=gata;
+    setSt("");showSec("SEC2");
+    render(f);
+  })
+  .catch(function(e){showErr("Servicedagarfel",e.message);});
 }
 
-// ── API-hjälpare ─────────────────────────────────────────────────────────────
-
-function proxyUrl(target) {
-  return `${WORKER_URL.replace(/\/+$/,'')}/?target=${encodeURIComponent(target)}`;
-}
-
-function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371000, rad = v => v * Math.PI / 180;
-  const a = Math.sin(rad(lat2-lat1)/2)**2
-          + Math.cos(rad(lat1))*Math.cos(rad(lat2))*Math.sin(rad(lon2-lon1)/2)**2;
-  return 2*R*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-// ── Datum/tid-hjälpare ───────────────────────────────────────────────────────
-
-const DAY_MAP = {
-  måndag:1, tisdag:2, onsdag:3, torsdag:4, fredag:5, lördag:6, söndag:0,
-  monday:1, tuesday:2, wednesday:3, thursday:4, friday:5, saturday:6, sunday:0
-};
-
-function parseDayNum(str) {
-  return str ? (DAY_MAP[str.toLowerCase().trim()] ?? null) : null;
-}
-
-/** Nästa datum för given veckodag (hoppar alltid minst 1 dag framåt) */
-function nextOccurrence(dayNum) {
-  const now = new Date(), today = now.getDay();
-  let diff = dayNum - today;
-  if (diff <= 0) diff += 7;
-  const d = new Date(now);
-  d.setDate(d.getDate() + diff);
-  return d;
-}
-
-function parseTime(str) {
-  const m = str && str.match(/(\d{1,2})[:.h](\d{2})/);
-  return m ? { h: parseInt(m[1]), m: parseInt(m[2]) } : null;
-}
-
-function icsDate(d) {
-  const p = n => String(n).padStart(2,'0');
-  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}T${p(d.getHours())}${p(d.getMinutes())}00`;
-}
-
-function downloadICS({ summary, dtstart, dtend, description, reminderMin }) {
-  const uid = `parking-${Date.now()}@parkeringsapp`;
-  const ics = [
-    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Parkeringsapp//SV',
-    'BEGIN:VEVENT',
-    `UID:${uid}`,`DTSTAMP:${icsDate(new Date())}`,
-    `DTSTART:${dtstart}`,`DTEND:${dtend}`,
-    `SUMMARY:${summary}`,`DESCRIPTION:${description}`,
-    'BEGIN:VALARM',`TRIGGER:-PT${reminderMin}M`,'ACTION:DISPLAY',
-    `DESCRIPTION:${summary}`,'END:VALARM',
-    'END:VEVENT','END:VCALENDAR'
-  ].join('\r\n');
-
-  const a = document.createElement('a');
-  a.href     = URL.createObjectURL(new Blob([ics], { type:'text/calendar' }));
-  a.download = 'parkering.ics';
-  a.click();
-}
-
-// ── Huvud-flöde ──────────────────────────────────────────────────────────────
-
-async function startApp() {
-  try {
-    // 1. GPS
-    const pos = await new Promise((res, rej) =>
-      navigator.geolocation.getCurrentPosition(res, rej, { timeout:10000, maximumAge:0 })
-    );
-    currentLat = pos.coords.latitude;
-    currentLon = pos.coords.longitude;
-
-    setStatus('<span class="spinner"></span> Identifierar gatan…');
-
-    // 2. Reverse geocode
-    const nomRes = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${currentLat}&lon=${currentLon}&addressdetails=1`,
-      { headers: { Accept:'application/json', 'User-Agent':'parkeringsapp' } }
-    );
-    if (!nomRes.ok) throw new Error('Nominatim-fel');
-    const nom = await nomRes.json();
-    const addr = nom.address || {};
-    const street = addr.road || addr.pedestrian || addr.residential || addr.street;
-    if (!street) throw new Error('Kunde inte identifiera gatan');
-
-    currentStreet = street;
-    const houseNum = addr.house_number ? `${street} ${addr.house_number}` : street;
-    const suburb   = addr.suburb || addr.city_district || '';
-
-    document.getElementById('street-name').textContent    = street;
-    document.getElementById('street-address').textContent = suburb ? `${houseNum}, ${suburb}` : houseNum;
-
-    setStatus('');
-    showSection('confirmation-section');
-
-  } catch(e) {
-    if      (e.code === 1) showError('Ingen åtkomst till plats',   'Tillåt platstjänster för den här sidan i Safari-inställningarna.');
-    else if (e.code === 2) showError('Kunde inte hitta position',  'Kontrollera att GPS är aktiverat.');
-    else                   showError('Fel', e.message || 'Okänt fel');
-  }
-}
-
-async function confirmStreet() {
-  showSection(null);
-  setStatus('<span class="spinner"></span> Hämtar servicedagar…');
-
-  try {
-    const target  = `${BASE}/servicedagar/street/${encodeURIComponent(currentStreet)}?outputFormat=json&apiKey=${API_KEY}`;
-    const res     = await fetch(proxyUrl(target), { headers: { Accept:'application/json' } });
-    const text    = await res.text();
-    if (!res.ok) throw new Error(`API svarade ${res.status}`);
-
-    let data;
-    try { data = JSON.parse(text); } catch { throw new Error('Ogiltigt svar från server'); }
-
-    const features = data?.type === 'FeatureCollection' ? data.features
-                   : Array.isArray(data)                ? data
-                   : Array.isArray(data.features)       ? data.features : [];
-
-    document.getElementById('result-street').textContent = currentStreet;
-    setStatus('');
-    showSection('result-section');
-    document.getElementById('calendar-section').style.display = '';
-
-    if (!features.length) {
-      document.getElementById('service-list').innerHTML =
-        '<p style="color:#636366;font-size:15px;padding:4px 0">Inga servicedagar registrerade för den här gatan.</p>';
-      document.getElementById('reminder-buttons').innerHTML = '';
-      return;
-    }
-
-    renderServiceDays(features);
-
-  } catch(e) {
-    showError('Kunde inte hämta servicedagar', e.message);
-  }
-}
-
-function renderServiceDays(features) {
-  // Samla unika (dag, start, slut)
-  const seen = new Set(), days = [];
-  for (const f of features) {
-    const p      = f.properties || f;
-    const dayStr = p.START_WEEKDAY || p.Weekday || p.STARTDAY || '';
-    const start  = p.START_TIME   || p.StartTime || '';
-    const end    = p.END_TIME     || p.EndTime   || '';
-    const key    = `${dayStr}|${start}|${end}`;
-    if (!dayStr || seen.has(key)) continue;
-    seen.add(key);
-    days.push({ dayStr, start, end });
-  }
-
-  const listEl = document.getElementById('service-list');
-  const btnEl  = document.getElementById('reminder-buttons');
-  listEl.innerHTML = '';
-  btnEl.innerHTML  = '';
-
-  if (!days.length) {
-    listEl.innerHTML = '<p style="color:#636366;font-size:15px">Inga servicedagar hittades.</p>';
-    return;
-  }
-
-  days.forEach(({ dayStr, start, end }, i) => {
-    const dayNum    = parseDayNum(dayStr);
-    const nextDate  = dayNum !== null ? nextOccurrence(dayNum) : null;
-    const daysUntil = nextDate ? Math.round((nextDate - new Date()) / 86400000) : null;
-
-    // Servicedagar-rad
-    const row = document.createElement('div');
-    row.className = 'service-row';
-    let badge = '';
-    if (daysUntil !== null) {
-      const cls   = daysUntil <= 1 ? 'service-next urgent' : 'service-next';
-      const label = daysUntil === 0 ? 'Ikväll!' : daysUntil === 1 ? 'Imorgon' : `Om ${daysUntil} dagar`;
-      badge = `<span class="${cls}">${label}</span>`;
-    }
-    row.innerHTML = `
-      <div>
-        <div class="service-day">${dayStr}</div>
-        <div class="service-time">${start}${start && end ? '–' : ''}${end}</div>
-      </div>${badge}`;
-    listEl.appendChild(row);
-
-    // Kalenderknapp
-    if (nextDate && start) {
-      const t = parseTime(start);
-      if (!t) return;
-
-      const evStart = new Date(nextDate);
-      evStart.setHours(t.h, t.m, 0, 0);
-
-      const evEnd = new Date(evStart);
-      const tEnd  = parseTime(end);
-      if (tEnd) evEnd.setHours(tEnd.h, tEnd.m, 0, 0);
-      else      evEnd.setHours(t.h + 1, t.m, 0, 0);
-
-      const whenLabel = daysUntil === 0 ? 'ikväll' : daysUntil === 1 ? 'imorgon' : dayStr.toLowerCase();
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-primary';
-      btn.textContent = `📅 Påminnelse ${whenLabel} kl ${start}`;
-      btn.onclick = () => {
-        downloadICS({
-          summary     : `🚗 Flytta bilen – ${currentStreet}`,
-          dtstart     : icsDate(evStart),
-          dtend       : icsDate(evEnd),
-          description : `Servicenatt på ${currentStreet}. Flytta bilen innan kl ${start}.`,
-          reminderMin : 30
-        });
-        btn.textContent  = '✅ Öppna filen i Kalender för att spara';
-        btn.className    = 'btn btn-secondary';
-      };
-      btnEl.appendChild(btn);
+function render(features){
+  var le=document.getElementById("SEC2list"),be=document.getElementById("SEC2btns");
+  le.innerHTML="";be.innerHTML="";
+  var seen={},days=[];
+  features.forEach(function(f){
+    var p=f.properties||f;
+    var ds=p.START_WEEKDAY||p.Weekday||p.STARTDAY||"";
+    var st=p.START_TIME||p.StartTime||"";
+    var en=p.END_TIME||p.EndTime||"";
+    var k=ds+"|"+st+"|"+en;
+    if(!ds||seen[k])return;seen[k]=true;days.push({ds:ds,st:st,en:en});
+  });
+  if(!days.length){le.innerHTML='<p style="color:#636366;font-size:15px;padding:6px 0">Inga servicedagar registrerade.</p>';return;}
+  days.forEach(function(day){
+    var dn=dnum(day.ds),nd=dn!==null?nxtDate(dn):null,dl=nd?Math.round((nd-new Date())/86400000):null;
+    var row=document.createElement("div");row.className="srow";
+    var badge="";
+    if(dl!==null){var bc=dl<=1?"badge urg":"badge";var bl=dl===0?"Ikvall!":dl===1?"Imorgon":"Om "+dl+" dagar";badge='<span class="'+bc+'">'+bl+"</span>";}
+    row.innerHTML='<div><div class="sday">'+day.ds+'</div><div class="stim">'+day.st+(day.st&&day.en?"–":"")+day.en+"</div></div>"+badge;
+    le.appendChild(row);
+    if(nd&&day.st){
+      var t=ptime(day.st);if(!t)return;
+      var es=new Date(nd);es.setHours(t.h,t.m,0,0);
+      var ee=new Date(es);var te=ptime(day.en);
+      if(te)ee.setHours(te.h,te.m,0,0);else ee.setHours(t.h+1,t.m,0,0);
+      var when=dl===0?"ikvall":dl===1?"imorgon":day.ds.toLowerCase();
+      var btn=document.createElement("button");btn.className="btn bp";btn.textContent="Paminnelse "+when+" kl "+day.st;
+      var _s="Flytta bilen - "+gata,_ds=itsmp(es),_de=itsmp(ee),_d="Servicenatt pa "+gata+". Flytta bilen innan kl "+day.st+".";
+      btn.onclick=function(){mkICS(_s,_ds,_de,_d);btn.textContent="Oppna .ics-filen for att spara i Kalender";btn.className="btn bs";};
+      be.appendChild(btn);
     }
   });
 }
 
-// ── Kör! ─────────────────────────────────────────────────────────────────────
-startApp();
+start();
 </script>
 </body>
 </html>
