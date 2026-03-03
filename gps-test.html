@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8"/>
+<title>GPS-test</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+body{font-family:-apple-system,sans-serif;padding:24px;background:#f2f2f7}
+.step{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;font-size:15px}
+.ok{border-left:4px solid #34c759}
+.err{border-left:4px solid #ff3b30}
+.wait{border-left:4px solid #007aff}
+</style>
+</head>
+<body>
+<h2 style="margin-bottom:16px">GPS-diagnostik</h2>
+<div id="log"></div>
+<script>
+function log(msg, type) {
+  var d = document.createElement('div');
+  d.className = 'step ' + (type || 'wait');
+  d.textContent = msg;
+  document.getElementById('log').appendChild(d);
+}
+
+log('Sidan laddad. Testar geolocation...');
+
+if (!navigator.geolocation) {
+  log('FAIL: navigator.geolocation finns inte!', 'err');
+} else {
+  log('OK: navigator.geolocation finns', 'ok');
+  log('Anropar getCurrentPosition()...');
+
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      log('OK: GPS fungerar! Lat=' + pos.coords.latitude.toFixed(5) + ' Lon=' + pos.coords.longitude.toFixed(5), 'ok');
+      log('Testar Nominatim...');
+      fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + pos.coords.latitude + '&lon=' + pos.coords.longitude + '&addressdetails=1', {
+        headers: {'Accept':'application/json','User-Agent':'parkeringsapp/1.0'}
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        var a = j.address || {};
+        var s = a.road || a.pedestrian || a.residential || a.street || '(ingen gata)';
+        log('OK: Nominatim svarade. Gata: ' + s, 'ok');
+        log('Testar Workers-proxy...');
+        var tgt = 'https://openparking.stockholm.se/LTF-Tolken/v1/servicedagar/street/' + encodeURIComponent(s) + '?outputFormat=json&apiKey=bdbc0530-408c-4ac0-8ad4-bcda19d40d6e';
+        var url = 'https://gentle-unit-77d4.johan-oestberg.workers.dev/?target=' + encodeURIComponent(tgt);
+        return fetch(url, {headers:{'Accept':'application/json'}});
+      })
+      .then(function(r){ return r.text(); })
+      .then(function(t){
+        log('OK: Workers-proxy svarade. Forsta 200 tecken: ' + t.slice(0,200), 'ok');
+      })
+      .catch(function(e){
+        log('FAIL: Nätverksfel: ' + e.message, 'err');
+      });
+    },
+    function(e) {
+      var msgs = {1:'Tillstand nekat (kod 1)', 2:'Position hittades ej (kod 2)', 3:'Timeout (kod 3)'};
+      log('FAIL: ' + (msgs[e.code] || 'Okänt fel kod ' + e.code), 'err');
+    },
+    {enableHighAccuracy: true, timeout: 15000, maximumAge: 0}
+  );
+}
+</script>
+</body>
+</html>
