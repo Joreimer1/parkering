@@ -12,7 +12,7 @@ h1{font-size:28px;font-weight:700;margin-bottom:28px;text-align:center}
 .lbl{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#8e8e93;margin-bottom:6px}
 .val{font-size:20px;font-weight:600}
 .sub{font-size:14px;color:#636366;margin-top:4px}
-.srow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f2f2f7}
+.srow{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:12px 0;border-bottom:1px solid #f2f2f7}
 .srow:last-child{border-bottom:none}
 .sday{font-weight:600;font-size:16px}
 .stim{font-size:14px;color:#636366}
@@ -27,11 +27,15 @@ h1{font-size:28px;font-weight:700;margin-bottom:28px;text-align:center}
 @keyframes sp{to{transform:rotate(360deg)}}
 .status{text-align:center;font-size:15px;color:#636366;margin:8px 0 20px;max-width:420px;line-height:1.5}
 .sec{display:none;width:100%;max-width:420px}
+.rowbtn{display:block;width:100%;padding:10px;border-radius:10px;border:none;font-size:15px;font-weight:600;cursor:pointer;background:#007aff;color:#fff;margin-top:4px}
+.rowbtn.done{background:#e5e5ea;color:#1c1c1e}
 </style>
 </head>
 <body>
 <h1>Parkering</h1>
 <div class="status" id="STATUS"><span class="spin"></span> Startar...</div>
+
+<!-- Sektion 1: bekräfta gata -->
 <div class="sec" id="SEC1">
   <div class="card">
     <div class="lbl">Du ar parkerad pa</div>
@@ -41,11 +45,21 @@ h1{font-size:28px;font-weight:700;margin-bottom:28px;text-align:center}
   <button class="btn bg" onclick="onConfirm()">Ja, det stammer</button>
   <button class="btn bs" onclick="onRetry()">Fel gata - forsok igen</button>
 </div>
+
+<!-- Sektion 2: servicedagar -->
 <div class="sec" id="SEC2">
-  <div class="card"><div class="lbl">Parkerad pa</div><div class="val" id="SEC2street"></div></div>
-  <div class="card"><div class="lbl">Servicenatter – välj din sida av gatan</div><div id="SEC2list"></div></div>
+  <div class="card">
+    <div class="lbl">Parkerad pa</div>
+    <div class="val" id="SEC2street"></div>
+  </div>
+  <div class="card">
+    <div class="lbl">Servicenatter - valj din sida</div>
+    <div id="SEC2list"></div>
+  </div>
   <button class="btn bs" style="margin-top:4px" onclick="onRetry()">Ny parkering</button>
 </div>
+
+<!-- Sektion 3: fel -->
 <div class="sec" id="SEC3">
   <div class="card" style="text-align:center">
     <div style="font-size:48px;margin-bottom:12px">!</div>
@@ -54,6 +68,7 @@ h1{font-size:28px;font-weight:700;margin-bottom:28px;text-align:center}
     <button class="btn bp" style="margin-top:16px" onclick="onRetry()">Forsok igen</button>
   </div>
 </div>
+
 <script>
 var AK="bdbc0530-408c-4ac0-8ad4-bcda19d40d6e";
 var WU="https://gentle-unit-77d4.johan-oestberg.workers.dev";
@@ -66,73 +81,35 @@ function showErr(t,m){setSt("");document.getElementById("SEC3t").textContent=t;d
 function onRetry(){showSec(null);start();}
 
 var DM={mandag:1,tisdag:2,onsdag:3,torsdag:4,fredag:5,lordag:6,sondag:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6,sunday:0};
-
-function dnum(s){
-  if(!s)return null;
-  var k=s.toLowerCase().trim().replace(/[\u00e5\u00e4]/g,"a").replace(/\u00f6/g,"o");
-  return DM.hasOwnProperty(k)?DM[k]:null;
-}
-
-function nxtDate(n){
-  var now=new Date(),diff=((n-now.getDay()+7)%7)||7,d=new Date(now);
-  d.setDate(d.getDate()+diff);return d;
-}
-
+function dnum(s){if(!s)return null;var k=s.toLowerCase().trim().replace(/[\u00e5\u00e4]/g,"a").replace(/\u00f6/g,"o");return DM.hasOwnProperty(k)?DM[k]:null;}
+function nxtDate(n){var now=new Date(),diff=((n-now.getDay()+7)%7)||7,d=new Date(now);d.setDate(d.getDate()+diff);return d;}
 function ptime(s){
   if(s===null||s===undefined||s==="")return null;
-  // API returnerar minuter från midnatt som heltal, t.ex. 600 = 06:00, 1380 = 23:00
-  if(typeof s==="number"||/^\d+$/.test(String(s))){
-    var mins=+s;
-    return{h:Math.floor(mins/60),m:mins%60};
-  }
+  if(typeof s==="number"||/^\d+$/.test(String(s))){var mins=+s;return{h:Math.floor(mins/60),m:mins%60};}
   var m=String(s).match(/(\d{1,2})[:.h](\d{2})/);
   return m?{h:+m[1],m:+m[2]}:null;
 }
-
-function fmtTime(s){
-  var t=ptime(s);
-  if(!t)return"";
-  return String(t.h).padStart(2,"0")+":"+String(t.m).padStart(2,"0");
-}
-
-function itsmp(d){
-  function z(n){return String(n).padStart(2,"0");}
-  return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"T"+z(d.getHours())+z(d.getMinutes())+"00";
-}
+function fmtTime(s){var t=ptime(s);if(!t)return"";return String(t.h).padStart(2,"0")+":"+String(t.m).padStart(2,"0");}
+function itsmp(d){function z(n){return String(n).padStart(2,"0");}return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"T"+z(d.getHours())+z(d.getMinutes())+"00";}
 
 function mkICS(sum,ds,de,desc){
-  var c=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Pk//SV",
-    "BEGIN:VEVENT","UID:p"+Date.now()+"@pk","DTSTAMP:"+itsmp(new Date()),
-    "DTSTART:"+ds,"DTEND:"+de,"SUMMARY:"+sum,"DESCRIPTION:"+desc,
-    "BEGIN:VALARM","TRIGGER:-PT30M","ACTION:DISPLAY","DESCRIPTION:"+sum,"END:VALARM",
-    "END:VEVENT","END:VCALENDAR"].join("\r\n");
-  var a=document.createElement("a");
-  a.href=URL.createObjectURL(new Blob([c],{type:"text/calendar"}));
-  a.download="parkering.ics";
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  var c=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Pk//SV","BEGIN:VEVENT","UID:p"+Date.now()+"@pk","DTSTAMP:"+itsmp(new Date()),"DTSTART:"+ds,"DTEND:"+de,"SUMMARY:"+sum,"DESCRIPTION:"+desc,"BEGIN:VALARM","TRIGGER:-PT30M","ACTION:DISPLAY","DESCRIPTION:"+sum,"END:VALARM","END:VEVENT","END:VCALENDAR"].join("\r\n");
+  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([c],{type:"text/calendar"}));a.download="parkering.ics";document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
-
 
 function start(){
   setSt('<span class="spin"></span> Hamtar din position...');
   if(!navigator.geolocation){showErr("GPS saknas","Webbläsaren stoeder inte platstjanster.");return;}
   navigator.geolocation.getCurrentPosition(
     function(p){lat=p.coords.latitude;lon=p.coords.longitude;geocode();},
-    function(e){
-      var m={1:["Nekad","Ge Safari tillgang till plats under Installningar."],
-             2:["Hittades ej","GPS saknas. Forsok utomhus."],
-             3:["Timeout","Forsok igen."]};
-      var r=m[e.code]||["Fel","Kod "+e.code];
-      showErr(r[0],r[1]);
-    },
+    function(e){var m={1:["Nekad","Ge Safari tillgang till plats under Installningar."],2:["Hittades ej","GPS saknas. Forsok utomhus."],3:["Timeout","Forsok igen."]};var r=m[e.code]||["Fel","Kod "+e.code];showErr(r[0],r[1]);},
     {enableHighAccuracy:true,timeout:15000,maximumAge:0}
   );
 }
 
 function geocode(){
   setSt('<span class="spin"></span> Identifierar gatan...');
-  fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat="+lat+"&lon="+lon+"&addressdetails=1",
-    {headers:{"Accept":"application/json","User-Agent":"parkeringsapp/1.0"}})
+  fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat="+lat+"&lon="+lon+"&addressdetails=1",{headers:{"Accept":"application/json","User-Agent":"parkeringsapp/1.0"}})
   .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
   .then(function(j){
     var a=j.address||{};
@@ -154,83 +131,83 @@ function onConfirm(){
   var tgt=BA+"/servicedagar/street/"+encodeURIComponent(gata)+"?outputFormat=json&apiKey="+AK;
   var url=WU.replace(/\/+$/,"")+"/?target="+encodeURIComponent(tgt);
   fetch(url,{headers:{"Accept":"application/json"}})
-  .then(function(r){
-    return r.text().then(function(t){
-      if(!r.ok)throw new Error("API "+r.status+": "+t.slice(0,100));
-      return JSON.parse(t);
-    });
-  })
+  .then(function(r){return r.text().then(function(t){if(!r.ok)throw new Error("API "+r.status+": "+t.slice(0,100));return JSON.parse(t);});})
   .then(function(data){
-    var f=(data&&data.type==="FeatureCollection")?data.features
-         :Array.isArray(data)?data
-         :Array.isArray(data.features)?data.features:[];
-    // Logga första feature för felsökning
-    if(f.length>0)console.log("API sample:",JSON.stringify(f[0].properties||f[0]));
+    var f=(data&&data.type==="FeatureCollection")?data.features:Array.isArray(data)?data:Array.isArray(data.features)?data.features:[];
     document.getElementById("SEC2street").textContent=gata;
-    setSt("");showSec("SEC2");
+    setSt("");
+    showSec("SEC2");
     render(f);
   })
   .catch(function(e){showErr("Servicedagarfel",e.message);});
 }
 
 function render(features){
-  var le=document.getElementById("SEC2list"),be=document.getElementById("SEC2btns");
-  le.innerHTML="";be.innerHTML="";
+  var le=document.getElementById("SEC2list");
+  le.innerHTML="";
   var seen={},days=[];
   features.forEach(function(f){
     var p=f.properties||f;
-    // Logga fältnamnen vi hittar
     var ds=p.START_WEEKDAY||p.WEEKDAY||p.Weekday||p.weekday||p.STARTDAY||"";
-    var st=String(p.START_TIME||p.StartTime||p.start_time||"");
-    var en=String(p.END_TIME||p.EndTime||p.end_time||"");
+    var st=p.START_TIME||p.StartTime||p.start_time||"";
+    var en=p.END_TIME||p.EndTime||p.end_time||"";
     var k=ds+"|"+st+"|"+en;
     if(!ds||seen[k])return;
     seen[k]=true;
     days.push({ds:ds,st:st,en:en});
   });
+
   if(!days.length){
     le.innerHTML='<p style="color:#636366;font-size:15px;padding:6px 0">Inga servicedagar registrerade.</p>';
     return;
   }
+
   days.forEach(function(day){
     var dn=dnum(day.ds),nd=dn!==null?nxtDate(dn):null;
     var dl=nd?Math.round((nd-new Date())/86400000):null;
-    var row=document.createElement("div");row.className="srow";
+    var stFmt=fmtTime(day.st),enFmt=fmtTime(day.en);
+
     var badge="";
     if(dl!==null){
       var bc=dl<=1?"badge urg":"badge";
       var bl=dl===0?"Ikvall!":dl===1?"Imorgon":"Om "+dl+" dagar";
       badge='<span class="'+bc+'">'+bl+"</span>";
     }
-    var stFmt=fmtTime(day.st), enFmt=fmtTime(day.en);
-    row.innerHTML='<div><div class="sday">'+day.ds+'</div>'
-      +'<div class="stim">'+stFmt+(stFmt&&enFmt?"–":"")+enFmt+"</div></div>"+badge;
-    le.appendChild(row);
+
+    var row=document.createElement("div");
+    row.className="srow";
+    row.innerHTML='<div style="display:flex;justify-content:space-between;width:100%;align-items:center">'
+      +'<div><div class="sday">'+day.ds+'</div>'
+      +'<div class="stim">'+stFmt+(stFmt&&enFmt?"–":"")+enFmt+"</div></div>"
+      +badge+"</div>";
+
     if(nd&&day.st){
-      var t=ptime(day.st);if(!t)return;
-      var es=new Date(nd);es.setHours(t.h,t.m,0,0);
-      var ee=new Date(es);
-      var te=ptime(day.en);
-      if(te)ee.setHours(te.h,te.m,0,0);else ee.setHours(t.h+1,t.m,0,0);
-      var when=dl===0?"ikvall":dl===1?"imorgon":day.ds.toLowerCase();
-      var btn=document.createElement("button");
-      btn.className="btn bp";
-      btn.textContent="Paminnelse "+when+" kl "+stFmt;
-      var _s="Flytta bilen - "+gata,_ds=itsmp(es),_de=itsmp(ee);
-      var _d="Servicenatt pa "+gata+". Flytta bilen innan kl "+stFmt+".";
-      btn.onclick=function(){
-        mkICS(_s,_ds,_de,_d);
-        btn.textContent="Oppna .ics-filen for att spara i Kalender";
-        btn.className="btn bs";
-      };
-      be.appendChild(btn);
+      var t=ptime(day.st);
+      if(t){
+        var es=new Date(nd);es.setHours(t.h,t.m,0,0);
+        var ee=new Date(es);
+        var te=ptime(day.en);
+        if(te)ee.setHours(te.h,te.m,0,0);else ee.setHours(t.h+1,t.m,0,0);
+        var when=dl===0?"ikvall":dl===1?"imorgon":day.ds.toLowerCase();
+        var btn=document.createElement("button");
+        btn.className="rowbtn";
+        btn.textContent="Paminnelse "+when+" kl "+stFmt;
+        var _s="Flytta bilen - "+gata,_ds=itsmp(es),_de=itsmp(ee);
+        var _d="Servicenatt pa "+gata+". Flytta bilen innan kl "+stFmt+".";
+        btn.onclick=function(){
+          mkICS(_s,_ds,_de,_d);
+          btn.textContent="Oppna .ics-filen for att spara i Kalender";
+          btn.className="rowbtn done";
+        };
+        row.appendChild(btn);
+      }
     }
+    le.appendChild(row);
   });
 }
 
 start();
 </script>
-<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.5</p>
-</script>
+<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.6</p>
 </body>
 </html>
