@@ -163,9 +163,13 @@ function render(features){
   }
 
   days.forEach(function(day){
-    var dn=dnum(day.ds),nd=dn!==null?nxtDate(dn):null;
+    var dn=dnum(day.ds), nd=dn!==null?nxtDate(dn):null;
     var dl=nd?Math.round((nd-new Date())/86400000):null;
-    var stFmt=fmtTime(day.st),enFmt=fmtTime(day.en);
+    var stFmt=fmtTime(day.st), enFmt=fmtTime(day.en);
+    var t=ptime(day.st);
+
+    // Debug
+    console.log("RAD:", day.ds, "| st raw:", day.st, "| stFmt:", stFmt, "| t:", JSON.stringify(t), "| nd:", nd);
 
     var badge="";
     if(dl!==null){
@@ -181,26 +185,28 @@ function render(features){
       +'<div class="stim">'+stFmt+(stFmt&&enFmt?"–":"")+enFmt+"</div></div>"
       +badge+"</div>";
 
-    if(nd&&day.st){
-      var t=ptime(day.st);
-      if(t){
-        var es=new Date(nd);es.setHours(t.h,t.m,0,0);
-        var ee=new Date(es);
-        var te=ptime(day.en);
-        if(te)ee.setHours(te.h,te.m,0,0);else ee.setHours(t.h+1,t.m,0,0);
-        var when=dl===0?"ikvall":dl===1?"imorgon":day.ds.toLowerCase();
-        var btn=document.createElement("button");
-        btn.className="rowbtn";
-        btn.textContent="Paminnelse "+when+" kl "+stFmt;
-        var _s="Flytta bilen - "+gata,_ds=itsmp(es),_de=itsmp(ee);
-        var _d="Servicenatt pa "+gata+". Flytta bilen innan kl "+stFmt+".";
-        btn.onclick=function(){
-          mkICS(_s,_ds,_de,_d);
-          btn.textContent="Oppna .ics-filen for att spara i Kalender";
-          btn.className="rowbtn done";
-        };
-        row.appendChild(btn);
-      }
+    // Knapp – logga varför den ev. inte skapas
+    if(!nd) console.warn("Ingen knapp: nd är null för", day.ds);
+    else if(!day.st) console.warn("Ingen knapp: st saknas");
+    else if(!t) console.warn("Ingen knapp: ptime returnerade null för", day.st);
+    else {
+      var es=new Date(nd); es.setHours(t.h,t.m,0,0);
+      var ee=new Date(es);
+      var te=ptime(day.en);
+      if(te) ee.setHours(te.h,te.m,0,0); else ee.setHours(t.h+1,t.m,0,0);
+      var when=dl===0?"ikvall":dl===1?"imorgon":day.ds.toLowerCase();
+      var btn=document.createElement("button");
+      btn.className="rowbtn";
+      btn.textContent="Paminnelse "+when+" kl "+stFmt;
+      var _s="Flytta bilen - "+gata, _ds=itsmp(es), _de=itsmp(ee);
+      var _d="Servicenatt pa "+gata+". Flytta bilen innan kl "+stFmt+".";
+      btn.onclick=function(){
+        mkICS(_s,_ds,_de,_d);
+        btn.textContent="Oppna .ics-filen for att spara i Kalender";
+        btn.className="rowbtn done";
+      };
+      row.appendChild(btn);
+      console.log("Knapp skapad for", day.ds, stFmt);
     }
     le.appendChild(row);
   });
