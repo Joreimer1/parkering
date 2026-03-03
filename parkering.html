@@ -67,13 +67,39 @@ function showErr(t,m){setSt("");document.getElementById("SEC3t").textContent=t;d
 function onRetry(){showSec(null);start();}
 
 var DM={mandag:1,tisdag:2,onsdag:3,torsdag:4,fredag:5,lordag:6,sondag:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6,sunday:0};
-function dnum(s){if(!s)return null;var k=s.toLowerCase().trim().replace(/[åä]/g,"a").replace(/ö/g,"o");return DM.hasOwnProperty(k)?DM[k]:null;}
-function nxtDate(n){var now=new Date(),diff=((n-now.getDay()+7)%7)||7,d=new Date(now);d.setDate(d.getDate()+diff);return d;}
-function ptime(s){var m=s&&s.match(/(\d{1,2})[:.h](\d{2})/);return m?{h:+m[1],m:+m[2]}:null;}
-function itsmp(d){function z(n){return String(n).padStart(2,"0");}return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"T"+z(d.getHours())+z(d.getMinutes())+"00";}
+
+function dnum(s){
+  if(!s)return null;
+  var k=s.toLowerCase().trim().replace(/[\u00e5\u00e4]/g,"a").replace(/\u00f6/g,"o");
+  return DM.hasOwnProperty(k)?DM[k]:null;
+}
+
+function nxtDate(n){
+  var now=new Date(),diff=((n-now.getDay()+7)%7)||7,d=new Date(now);
+  d.setDate(d.getDate()+diff);return d;
+}
+
+function ptime(s){
+  if(!s||typeof s!=="string")return null;
+  var m=s.match(/(\d{1,2})[:.h](\d{2})/);
+  return m?{h:+m[1],m:+m[2]}:null;
+}
+
+function itsmp(d){
+  function z(n){return String(n).padStart(2,"0");}
+  return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"T"+z(d.getHours())+z(d.getMinutes())+"00";
+}
+
 function mkICS(sum,ds,de,desc){
-  var c=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Pk//SV","BEGIN:VEVENT","UID:p"+Date.now()+"@pk","DTSTAMP:"+itsmp(new Date()),"DTSTART:"+ds,"DTEND:"+de,"SUMMARY:"+sum,"DESCRIPTION:"+desc,"BEGIN:VALARM","TRIGGER:-PT30M","ACTION:DISPLAY","DESCRIPTION:"+sum,"END:VALARM","END:VEVENT","END:VCALENDAR"].join("\r\n");
-  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([c],{type:"text/calendar"}));a.download="parkering.ics";document.body.appendChild(a);a.click();document.body.removeChild(a);
+  var c=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Pk//SV",
+    "BEGIN:VEVENT","UID:p"+Date.now()+"@pk","DTSTAMP:"+itsmp(new Date()),
+    "DTSTART:"+ds,"DTEND:"+de,"SUMMARY:"+sum,"DESCRIPTION:"+desc,
+    "BEGIN:VALARM","TRIGGER:-PT30M","ACTION:DISPLAY","DESCRIPTION:"+sum,"END:VALARM",
+    "END:VEVENT","END:VCALENDAR"].join("\r\n");
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([c],{type:"text/calendar"}));
+  a.download="parkering.ics";
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
 function start(){
@@ -81,14 +107,21 @@ function start(){
   if(!navigator.geolocation){showErr("GPS saknas","Webbläsaren stoeder inte platstjanster.");return;}
   navigator.geolocation.getCurrentPosition(
     function(p){lat=p.coords.latitude;lon=p.coords.longitude;geocode();},
-    function(e){var m={1:["Nekad","Ge Safari tillgang till plats under Installningar."],2:["Hittades ej","GPS saknas. Forsok utomhus."],3:["Timeout","Forsok igen."]};var r=m[e.code]||["Fel","Kod "+e.code];showErr(r[0],r[1]);},
+    function(e){
+      var m={1:["Nekad","Ge Safari tillgang till plats under Installningar."],
+             2:["Hittades ej","GPS saknas. Forsok utomhus."],
+             3:["Timeout","Forsok igen."]};
+      var r=m[e.code]||["Fel","Kod "+e.code];
+      showErr(r[0],r[1]);
+    },
     {enableHighAccuracy:true,timeout:15000,maximumAge:0}
   );
 }
 
 function geocode(){
   setSt('<span class="spin"></span> Identifierar gatan...');
-  fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat="+lat+"&lon="+lon+"&addressdetails=1",{headers:{"Accept":"application/json","User-Agent":"parkeringsapp/1.0"}})
+  fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat="+lat+"&lon="+lon+"&addressdetails=1",
+    {headers:{"Accept":"application/json","User-Agent":"parkeringsapp/1.0"}})
   .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
   .then(function(j){
     var a=j.address||{};
@@ -105,13 +138,23 @@ function geocode(){
 }
 
 function onConfirm(){
-  showSec(null);setSt('<span class="spin"></span> Hamtar servicedagar...');
+  showSec(null);
+  setSt('<span class="spin"></span> Hamtar servicedagar...');
   var tgt=BA+"/servicedagar/street/"+encodeURIComponent(gata)+"?outputFormat=json&apiKey="+AK;
   var url=WU.replace(/\/+$/,"")+"/?target="+encodeURIComponent(tgt);
   fetch(url,{headers:{"Accept":"application/json"}})
-  .then(function(r){return r.text().then(function(t){if(!r.ok)throw new Error("API "+r.status);return JSON.parse(t);});})
+  .then(function(r){
+    return r.text().then(function(t){
+      if(!r.ok)throw new Error("API "+r.status+": "+t.slice(0,100));
+      return JSON.parse(t);
+    });
+  })
   .then(function(data){
-    var f=(data&&data.type==="FeatureCollection")?data.features:Array.isArray(data)?data:Array.isArray(data.features)?data.features:[];
+    var f=(data&&data.type==="FeatureCollection")?data.features
+         :Array.isArray(data)?data
+         :Array.isArray(data.features)?data.features:[];
+    // Logga första feature för felsökning
+    if(f.length>0)console.log("API sample:",JSON.stringify(f[0].properties||f[0]));
     document.getElementById("SEC2street").textContent=gata;
     setSt("");showSec("SEC2");
     render(f);
@@ -125,29 +168,49 @@ function render(features){
   var seen={},days=[];
   features.forEach(function(f){
     var p=f.properties||f;
-    var ds=p.START_WEEKDAY||p.Weekday||p.STARTDAY||"";
-    var st=p.START_TIME||p.StartTime||"";
-    var en=p.END_TIME||p.EndTime||"";
+    // Logga fältnamnen vi hittar
+    var ds=p.START_WEEKDAY||p.WEEKDAY||p.Weekday||p.weekday||p.STARTDAY||"";
+    var st=String(p.START_TIME||p.StartTime||p.start_time||"");
+    var en=String(p.END_TIME||p.EndTime||p.end_time||"");
     var k=ds+"|"+st+"|"+en;
-    if(!ds||seen[k])return;seen[k]=true;days.push({ds:ds,st:st,en:en});
+    if(!ds||seen[k])return;
+    seen[k]=true;
+    days.push({ds:ds,st:st,en:en});
   });
-  if(!days.length){le.innerHTML='<p style="color:#636366;font-size:15px;padding:6px 0">Inga servicedagar registrerade.</p>';return;}
+  if(!days.length){
+    le.innerHTML='<p style="color:#636366;font-size:15px;padding:6px 0">Inga servicedagar registrerade.</p>';
+    return;
+  }
   days.forEach(function(day){
-    var dn=dnum(day.ds),nd=dn!==null?nxtDate(dn):null,dl=nd?Math.round((nd-new Date())/86400000):null;
+    var dn=dnum(day.ds),nd=dn!==null?nxtDate(dn):null;
+    var dl=nd?Math.round((nd-new Date())/86400000):null;
     var row=document.createElement("div");row.className="srow";
     var badge="";
-    if(dl!==null){var bc=dl<=1?"badge urg":"badge";var bl=dl===0?"Ikvall!":dl===1?"Imorgon":"Om "+dl+" dagar";badge='<span class="'+bc+'">'+bl+"</span>";}
-    row.innerHTML='<div><div class="sday">'+day.ds+'</div><div class="stim">'+day.st+(day.st&&day.en?"–":"")+day.en+"</div></div>"+badge;
+    if(dl!==null){
+      var bc=dl<=1?"badge urg":"badge";
+      var bl=dl===0?"Ikvall!":dl===1?"Imorgon":"Om "+dl+" dagar";
+      badge='<span class="'+bc+'">'+bl+"</span>";
+    }
+    row.innerHTML='<div><div class="sday">'+day.ds+'</div>'
+      +'<div class="stim">'+day.st+(day.st&&day.en?"–":"")+day.en+"</div></div>"+badge;
     le.appendChild(row);
     if(nd&&day.st){
       var t=ptime(day.st);if(!t)return;
       var es=new Date(nd);es.setHours(t.h,t.m,0,0);
-      var ee=new Date(es);var te=ptime(day.en);
+      var ee=new Date(es);
+      var te=ptime(day.en);
       if(te)ee.setHours(te.h,te.m,0,0);else ee.setHours(t.h+1,t.m,0,0);
       var when=dl===0?"ikvall":dl===1?"imorgon":day.ds.toLowerCase();
-      var btn=document.createElement("button");btn.className="btn bp";btn.textContent="Paminnelse "+when+" kl "+day.st;
-      var _s="Flytta bilen - "+gata,_ds=itsmp(es),_de=itsmp(ee),_d="Servicenatt pa "+gata+". Flytta bilen innan kl "+day.st+".";
-      btn.onclick=function(){mkICS(_s,_ds,_de,_d);btn.textContent="Oppna .ics-filen for att spara i Kalender";btn.className="btn bs";};
+      var btn=document.createElement("button");
+      btn.className="btn bp";
+      btn.textContent="Paminnelse "+when+" kl "+day.st;
+      var _s="Flytta bilen - "+gata,_ds=itsmp(es),_de=itsmp(ee);
+      var _d="Servicenatt pa "+gata+". Flytta bilen innan kl "+day.st+".";
+      btn.onclick=function(){
+        mkICS(_s,_ds,_de,_d);
+        btn.textContent="Oppna .ics-filen for att spara i Kalender";
+        btn.className="btn bs";
+      };
       be.appendChild(btn);
     }
   });
