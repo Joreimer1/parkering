@@ -157,13 +157,15 @@ function renderTaxa(features){
   var taxaMatch=rate.match(/taxa\s*(\d+)/i);
   if(taxaMatch)taxaNum=taxaMatch[1];
 
-  if(taxaNum){
+if(taxaNum){
     var smsEl=document.getElementById("SEC2sms");
-    var btn=document.createElement("a");
-    btn.href="https://app.parkster.com";
+    var btn=document.createElement("button");
     btn.className="btn";
-    btn.style.cssText="background:#34c759;color:#fff;text-decoration:none;text-align:center;display:block;margin-bottom:12px";
-    btn.textContent="Parkera i Parkster – ange zon "+taxaNum;
+    btn.style.cssText="background:#34c759;color:#fff;margin-bottom:12px";
+    btn.textContent="Parkera i Parkster – zon "+taxaNum;
+    btn.onclick=function(){
+      window.location="parkster://start?zone="+taxaNum;
+    };
     smsEl.appendChild(btn);
   }
 }
