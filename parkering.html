@@ -197,10 +197,10 @@ function render(features){
       +badge+"</div>";
 
     // Knapp – logga varför den ev. inte skapas
-    if(!nd) console.warn("Ingen knapp: nd är null för", day.ds);
-    else if(!day.st) console.warn("Ingen knapp: st saknas");
-    else if(!t) console.warn("Ingen knapp: ptime returnerade null för", day.st);
-    else {
+      if(!nd) console.warn("Ingen knapp: nd är null för", day.ds);
+      else if(day.st===undefined||day.st==="") console.warn("Ingen knapp: st saknas");
+      else if(!t) console.warn("Ingen knapp: ptime returnerade null för", day.st);
+      else {
       var es=new Date(nd); es.setHours(t.h,t.m,0,0);
       var ee=new Date(es);
       var te=ptime(day.en);
@@ -225,6 +225,6 @@ function render(features){
 
 start();
 </script>
-<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.9</p>
+<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v2.0</p>
 </body>
 </html>
