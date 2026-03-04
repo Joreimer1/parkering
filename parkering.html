@@ -160,7 +160,7 @@ function renderTaxa(features){
   if(taxaNum){
     var smsEl=document.getElementById("SEC2sms");
     var btn=document.createElement("a");
-    btn.href="parkster://zone/"+taxaNum;
+    btn.href="parkster://start?zone="+taxaNum;
     btn.className="btn";
     btn.style.cssText="background:#34c759;color:#fff;text-decoration:none;text-align:center;display:block;margin-bottom:12px";
     btn.textContent="Parkera i Parkster (zon "+taxaNum+")";
