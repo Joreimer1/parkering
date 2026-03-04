@@ -152,12 +152,18 @@ function renderTaxa(features){
   var dist=p.PARKING_DISTRICT||p.CITY_DISTRICT||"";if(dist)html+='<div style="font-size:13px;color:#8e8e93;margin-top:6px">Distrikt: '+dist+'</div>';
   if(html){document.getElementById("SEC2taxa").innerHTML=html;document.getElementById("SEC2taxacard").style.display="block";}
   var fid=p.FID||p.ZONE||"";
-  if(fid){
+// Extrahera taxanummer ur PARKING_RATE, t.ex. "taxa 3: 20 kr..." -> "3"
+  var taxaNum=null;
+  var taxaMatch=rate.match(/taxa\s*(\d+)/i);
+  if(taxaMatch)taxaNum=taxaMatch[1];
+
+  if(taxaNum){
     var smsEl=document.getElementById("SEC2sms");
     var btn=document.createElement("a");
-    btn.href="sms:0707131415?body="+encodeURIComponent(fid+" REGNR PERSONNR");
-    btn.className="btn";btn.style.background="#34c759";btn.style.color="#fff";btn.style.textDecoration="none";btn.style.textAlign="center";btn.style.display="block";
-    btn.textContent="Parkera via Parkster SMS (zon "+fid+")";
+    btn.href="parkster://zone/"+taxaNum;
+    btn.className="btn";
+    btn.style.cssText="background:#34c759;color:#fff;text-decoration:none;text-align:center;display:block;margin-bottom:12px";
+    btn.textContent="Parkera i Parkster (zon "+taxaNum+")";
     smsEl.appendChild(btn);
   }
 }
@@ -197,6 +203,6 @@ function render(features){
 
 start();
 </script>
-<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v2.1</p>
+<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v2.2</p>
 </body>
 </html>
