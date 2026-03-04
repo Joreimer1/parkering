@@ -149,8 +149,8 @@ function render(features){
   features.forEach(function(f){
     var p=f.properties||f;
     var ds=p.START_WEEKDAY||p.WEEKDAY||p.Weekday||p.weekday||p.STARTDAY||"";
-    var st=p.START_TIME||p.StartTime||p.start_time||"";
-    var en=p.END_TIME||p.EndTime||p.end_time||"";
+    var st=p.START_TIME!==undefined?p.START_TIME:p.StartTime!==undefined?p.StartTime:p.start_time!==undefined?p.start_time:"";
+    var en=p.END_TIME!==undefined?p.END_TIME:p.EndTime!==undefined?p.EndTime:p.end_time!==undefined?p.end_time:"";
     var k=ds+"|"+st+"|"+en;
     if(!ds||seen[k])return;
     seen[k]=true;
@@ -214,6 +214,6 @@ function render(features){
 
 start();
 </script>
-<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.7</p>
+<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.8</p>
 </body>
 </html>
