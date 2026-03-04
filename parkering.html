@@ -85,11 +85,22 @@ function dnum(s){if(!s)return null;var k=s.toLowerCase().trim().replace(/[\u00e5
 function nxtDate(n){var now=new Date(),diff=((n-now.getDay()+7)%7)||7,d=new Date(now);d.setDate(d.getDate()+diff);return d;}
 function ptime(s){
   if(s===null||s===undefined||s==="")return null;
-  if(typeof s==="number"||/^\d+$/.test(String(s))){var mins=+s;return{h:Math.floor(mins/60),m:mins%60};}
+  // Format är HHMM, t.ex. 900=09:00, 1400=14:00, 0=00:00
+  var n=+s;
+  if(!isNaN(n)){
+    var h=Math.floor(n/100);
+    var m=n%100;
+    return{h:h,m:m};
+  }
   var m=String(s).match(/(\d{1,2})[:.h](\d{2})/);
   return m?{h:+m[1],m:+m[2]}:null;
 }
-function fmtTime(s){var t=ptime(s);if(!t)return"";return String(t.h).padStart(2,"0")+":"+String(t.m).padStart(2,"0");}
+function fmtTime(s){
+  if(s===null||s===undefined||s==="")return"";
+  var t=ptime(s);
+  if(!t)return"";
+  return String(t.h).padStart(2,"0")+":"+String(t.m).padStart(2,"0");
+}
 function itsmp(d){function z(n){return String(n).padStart(2,"0");}return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"T"+z(d.getHours())+z(d.getMinutes())+"00";}
 
 function mkICS(sum,ds,de,desc){
@@ -214,6 +225,6 @@ function render(features){
 
 start();
 </script>
-<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.8</p>
+<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.9</p>
 </body>
 </html>
