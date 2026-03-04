@@ -149,6 +149,9 @@ function onConfirm(){
 }
 
 function renderTaxa(features){
+  document.getElementById("SEC2sms").innerHTML="";  // ← lägg till denna rad
+  document.getElementById("SEC2taxa").innerHTML="";
+  document.getElementById("SEC2taxacard").style.display="none";
   if(!features.length)return;
   var p=null;
   for(var i=0;i<features.length;i++){var fp=features[i].properties||features[i];if(fp.PARKING_RATE||fp.VF_PLATS_TYP){p=fp;break;}}
@@ -253,6 +256,6 @@ function onMapClick(clat,clon){
 }
 start();
 </script>
-<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v2.6</p>
+<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v2.7</p>
 </body>
 </html>
