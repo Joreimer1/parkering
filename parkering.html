@@ -229,6 +229,11 @@ function showMap(){
       });
     };
     document.body.appendChild(script);
+     } else {
+    // Kartan finns redan – tvinga omritning
+    setTimeout(function(){
+      map.invalidateSize();
+    }, 100);
   }
 }
 
@@ -256,6 +261,6 @@ function onMapClick(clat,clon){
 }
 start();
 </script>
-<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.0</p>
+<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.1</p>
 </body>
 </html>
