@@ -12,6 +12,8 @@ h1{font-size:28px;font-weight:700;margin-bottom:28px;text-align:center}
 .lbl{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:#8e8e93;margin-bottom:6px}
 .val{font-size:20px;font-weight:600}
 .sub{font-size:14px;color:#636366;margin-top:4px}
+.taxa{font-size:14px;color:#1c1c1e;margin-top:8px;line-height:1.5;padding:10px;background:#f2f2f7;border-radius:8px}
+.taxa-type{font-weight:600;margin-bottom:4px}
 .srow{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:12px 0;border-bottom:1px solid #f2f2f7}
 .srow:last-child{border-bottom:none}
 .sday{font-weight:600;font-size:16px}
@@ -35,7 +37,6 @@ h1{font-size:28px;font-weight:700;margin-bottom:28px;text-align:center}
 <h1>Parkering</h1>
 <div class="status" id="STATUS"><span class="spin"></span> Startar...</div>
 
-<!-- Sektion 1: bekräfta gata -->
 <div class="sec" id="SEC1">
   <div class="card">
     <div class="lbl">Du ar parkerad pa</div>
@@ -46,12 +47,16 @@ h1{font-size:28px;font-weight:700;margin-bottom:28px;text-align:center}
   <button class="btn bs" onclick="onRetry()">Fel gata - forsok igen</button>
 </div>
 
-<!-- Sektion 2: servicedagar -->
 <div class="sec" id="SEC2">
   <div class="card">
     <div class="lbl">Parkerad pa</div>
     <div class="val" id="SEC2street"></div>
   </div>
+  <div class="card" id="SEC2taxacard" style="display:none">
+    <div class="lbl">Parkeringsregler</div>
+    <div id="SEC2taxa"></div>
+  </div>
+  <div id="SEC2sms"></div>
   <div class="card">
     <div class="lbl">Servicenatter - valj din sida</div>
     <div id="SEC2list"></div>
@@ -59,7 +64,6 @@ h1{font-size:28px;font-weight:700;margin-bottom:28px;text-align:center}
   <button class="btn bs" style="margin-top:4px" onclick="onRetry()">Ny parkering</button>
 </div>
 
-<!-- Sektion 3: fel -->
 <div class="sec" id="SEC3">
   <div class="card" style="text-align:center">
     <div style="font-size:48px;margin-bottom:12px">!</div>
@@ -85,24 +89,11 @@ function dnum(s){if(!s)return null;var k=s.toLowerCase().trim().replace(/[\u00e5
 function nxtDate(n){var now=new Date(),diff=((n-now.getDay()+7)%7)||7,d=new Date(now);d.setDate(d.getDate()+diff);return d;}
 function ptime(s){
   if(s===null||s===undefined||s==="")return null;
-  // Format är HHMM, t.ex. 900=09:00, 1400=14:00, 0=00:00
-  var n=+s;
-  if(!isNaN(n)){
-    var h=Math.floor(n/100);
-    var m=n%100;
-    return{h:h,m:m};
-  }
-  var m=String(s).match(/(\d{1,2})[:.h](\d{2})/);
-  return m?{h:+m[1],m:+m[2]}:null;
+  var n=+s;if(!isNaN(n)){return{h:Math.floor(n/100),m:n%100};}
+  var m=String(s).match(/(\d{1,2})[:.h](\d{2})/);return m?{h:+m[1],m:+m[2]}:null;
 }
-function fmtTime(s){
-  if(s===null||s===undefined||s==="")return"";
-  var t=ptime(s);
-  if(!t)return"";
-  return String(t.h).padStart(2,"0")+":"+String(t.m).padStart(2,"0");
-}
+function fmtTime(s){if(s===null||s===undefined||s==="")return"";var t=ptime(s);if(!t)return"";return String(t.h).padStart(2,"0")+":"+String(t.m).padStart(2,"0");}
 function itsmp(d){function z(n){return String(n).padStart(2,"0");}return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"T"+z(d.getHours())+z(d.getMinutes())+"00";}
-
 function mkICS(sum,ds,de,desc){
   var c=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Pk//SV","BEGIN:VEVENT","UID:p"+Date.now()+"@pk","DTSTAMP:"+itsmp(new Date()),"DTSTART:"+ds,"DTEND:"+de,"SUMMARY:"+sum,"DESCRIPTION:"+desc,"BEGIN:VALARM","TRIGGER:-PT30M","ACTION:DISPLAY","DESCRIPTION:"+sum,"END:VALARM","END:VEVENT","END:VCALENDAR"].join("\r\n");
   var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([c],{type:"text/calendar"}));a.download="parkering.ics";document.body.appendChild(a);a.click();document.body.removeChild(a);
@@ -113,7 +104,7 @@ function start(){
   if(!navigator.geolocation){showErr("GPS saknas","Webbläsaren stoeder inte platstjanster.");return;}
   navigator.geolocation.getCurrentPosition(
     function(p){lat=p.coords.latitude;lon=p.coords.longitude;geocode();},
-    function(e){var m={1:["Nekad","Ge Safari tillgang till plats under Installningar."],2:["Hittades ej","GPS saknas. Forsok utomhus."],3:["Timeout","Forsok igen."]};var r=m[e.code]||["Fel","Kod "+e.code];showErr(r[0],r[1]);},
+    function(e){var m={1:["Nekad","Ge Safari tillgang till plats."],2:["Hittades ej","GPS saknas."],3:["Timeout","Forsok igen."]};var r=m[e.code]||["Fel","Kod "+e.code];showErr(r[0],r[1]);},
     {enableHighAccuracy:true,timeout:15000,maximumAge:0}
   );
 }
@@ -123,12 +114,10 @@ function geocode(){
   fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat="+lat+"&lon="+lon+"&addressdetails=1",{headers:{"Accept":"application/json","User-Agent":"parkeringsapp/1.0"}})
   .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
   .then(function(j){
-    var a=j.address||{};
-    var s=a.road||a.pedestrian||a.residential||a.street||a.quarter;
+    var a=j.address||{};var s=a.road||a.pedestrian||a.residential||a.street||a.quarter;
     if(!s){showErr("Okand gata","Ingen gatuadress hittades.");return;}
     gata=s;
-    var full=a.house_number?s+" "+a.house_number:s;
-    var sub=a.suburb||a.city_district||"";
+    var full=a.house_number?s+" "+a.house_number:s;var sub=a.suburb||a.city_district||"";
     document.getElementById("SEC1street").textContent=s;
     document.getElementById("SEC1addr").textContent=sub?full+", "+sub:full;
     setSt("");showSec("SEC1");
@@ -137,87 +126,70 @@ function geocode(){
 }
 
 function onConfirm(){
-  showSec(null);
-  setSt('<span class="spin"></span> Hamtar servicedagar...');
+  showSec(null);setSt('<span class="spin"></span> Hamtar parkeringsinfo...');
   var tgt=BA+"/servicedagar/street/"+encodeURIComponent(gata)+"?outputFormat=json&apiKey="+AK;
   var url=WU.replace(/\/+$/,"")+"/?target="+encodeURIComponent(tgt);
   fetch(url,{headers:{"Accept":"application/json"}})
-  .then(function(r){return r.text().then(function(t){if(!r.ok)throw new Error("API "+r.status+": "+t.slice(0,100));return JSON.parse(t);});})
+  .then(function(r){return r.text().then(function(t){if(!r.ok)throw new Error("API "+r.status);return JSON.parse(t);});})
   .then(function(data){
     var f=(data&&data.type==="FeatureCollection")?data.features:Array.isArray(data)?data:Array.isArray(data.features)?data.features:[];
     document.getElementById("SEC2street").textContent=gata;
-    setSt("");
-    showSec("SEC2");
+    setSt("");showSec("SEC2");
+    renderTaxa(f);
     render(f);
   })
-  .catch(function(e){showErr("Servicedagarfel",e.message);});
+  .catch(function(e){showErr("Fel vid hamtning",e.message);});
+}
+
+function renderTaxa(features){
+  if(!features.length)return;
+  var p=null;
+  for(var i=0;i<features.length;i++){var fp=features[i].properties||features[i];if(fp.PARKING_RATE||fp.VF_PLATS_TYP){p=fp;break;}}
+  if(!p)return;
+  var html="";
+  var typ=p.VF_PLATS_TYP||"";if(typ)html+='<div class="taxa-type">'+typ+'</div>';
+  var rate=p.PARKING_RATE||"";if(rate)html+='<div class="taxa">'+rate+'</div>';
+  var dist=p.PARKING_DISTRICT||p.CITY_DISTRICT||"";if(dist)html+='<div style="font-size:13px;color:#8e8e93;margin-top:6px">Distrikt: '+dist+'</div>';
+  if(html){document.getElementById("SEC2taxa").innerHTML=html;document.getElementById("SEC2taxacard").style.display="block";}
+  var fid=p.FID||p.ZONE||"";
+  if(fid){
+    var smsEl=document.getElementById("SEC2sms");
+    var btn=document.createElement("a");
+    btn.href="sms:0707131415?body="+encodeURIComponent(fid+" REGNR PERSONNR");
+    btn.className="btn";btn.style.background="#34c759";btn.style.color="#fff";btn.style.textDecoration="none";btn.style.textAlign="center";btn.style.display="block";
+    btn.textContent="Parkera via Parkster SMS (zon "+fid+")";
+    smsEl.appendChild(btn);
+  }
 }
 
 function render(features){
-  var le=document.getElementById("SEC2list");
-  le.innerHTML="";
+  var le=document.getElementById("SEC2list");le.innerHTML="";
   var seen={},days=[];
   features.forEach(function(f){
     var p=f.properties||f;
     var ds=p.START_WEEKDAY||p.WEEKDAY||p.Weekday||p.weekday||p.STARTDAY||"";
     var st=p.START_TIME!==undefined?p.START_TIME:p.StartTime!==undefined?p.StartTime:p.start_time!==undefined?p.start_time:"";
     var en=p.END_TIME!==undefined?p.END_TIME:p.EndTime!==undefined?p.EndTime:p.end_time!==undefined?p.end_time:"";
-    var k=ds+"|"+st+"|"+en;
-    if(!ds||seen[k])return;
-    seen[k]=true;
-    days.push({ds:ds,st:st,en:en});
+    var k=ds+"|"+st+"|"+en;if(!ds||seen[k])return;seen[k]=true;days.push({ds:ds,st:st,en:en});
   });
-
-  if(!days.length){
-    le.innerHTML='<p style="color:#636366;font-size:15px;padding:6px 0">Inga servicedagar registrerade.</p>';
-    return;
-  }
-
+  if(!days.length){le.innerHTML='<p style="color:#636366;font-size:15px;padding:6px 0">Inga servicedagar registrerade.</p>';return;}
   days.forEach(function(day){
-    var dn=dnum(day.ds), nd=dn!==null?nxtDate(dn):null;
+    var dn=dnum(day.ds),nd=dn!==null?nxtDate(dn):null;
     var dl=nd?Math.round((nd-new Date())/86400000):null;
-    var stFmt=fmtTime(day.st), enFmt=fmtTime(day.en);
-    var t=ptime(day.st);
-
-    // Debug
-    console.log("RAD:", day.ds, "| st raw:", day.st, "| stFmt:", stFmt, "| t:", JSON.stringify(t), "| nd:", nd);
-
+    var stFmt=fmtTime(day.st),enFmt=fmtTime(day.en),t=ptime(day.st);
     var badge="";
-    if(dl!==null){
-      var bc=dl<=1?"badge urg":"badge";
-      var bl=dl===0?"Ikvall!":dl===1?"Imorgon":"Om "+dl+" dagar";
-      badge='<span class="'+bc+'">'+bl+"</span>";
-    }
-
-    var row=document.createElement("div");
-    row.className="srow";
-    row.innerHTML='<div style="display:flex;justify-content:space-between;width:100%;align-items:center">'
-      +'<div><div class="sday">'+day.ds+'</div>'
-      +'<div class="stim">'+stFmt+(stFmt&&enFmt?"–":"")+enFmt+"</div></div>"
-      +badge+"</div>";
-
-    // Knapp – logga varför den ev. inte skapas
-      if(!nd) console.warn("Ingen knapp: nd är null för", day.ds);
-      else if(day.st===undefined||day.st==="") console.warn("Ingen knapp: st saknas");
-      else if(!t) console.warn("Ingen knapp: ptime returnerade null för", day.st);
-      else {
-      var es=new Date(nd); es.setHours(t.h,t.m,0,0);
-      var ee=new Date(es);
-      var te=ptime(day.en);
-      if(te) ee.setHours(te.h,te.m,0,0); else ee.setHours(t.h+1,t.m,0,0);
+    if(dl!==null){var bc=dl<=1?"badge urg":"badge";var bl=dl===0?"Ikvall!":dl===1?"Imorgon":"Om "+dl+" dagar";badge='<span class="'+bc+'">'+bl+"</span>";}
+    var row=document.createElement("div");row.className="srow";
+    row.innerHTML='<div style="display:flex;justify-content:space-between;width:100%;align-items:center"><div><div class="sday">'+day.ds+'</div><div class="stim">'+stFmt+(stFmt&&enFmt?"–":"")+enFmt+"</div></div>"+badge+"</div>";
+    if(nd&&day.st!==undefined&&day.st!==""&&t){
+      var es=new Date(nd);es.setHours(t.h,t.m,0,0);
+      var ee=new Date(es);var te=ptime(day.en);
+      if(te)ee.setHours(te.h,te.m,0,0);else ee.setHours(t.h+1,t.m,0,0);
       var when=dl===0?"ikvall":dl===1?"imorgon":day.ds.toLowerCase();
-      var btn=document.createElement("button");
-      btn.className="rowbtn";
-      btn.textContent="Paminnelse "+when+" kl "+stFmt;
-      var _s="Flytta bilen - "+gata, _ds=itsmp(es), _de=itsmp(ee);
-      var _d="Servicenatt pa "+gata+". Flytta bilen innan kl "+stFmt+".";
-      btn.onclick=function(){
-        mkICS(_s,_ds,_de,_d);
-        btn.textContent="Oppna .ics-filen for att spara i Kalender";
-        btn.className="rowbtn done";
-      };
+      var btn=document.createElement("button");btn.className="rowbtn";btn.textContent="Paminnelse "+when+" kl "+stFmt;
+      var _s="Flytta bilen - "+gata,_ds=itsmp(es),_de=itsmp(ee),_d="Servicenatt pa "+gata+". Flytta bilen innan kl "+stFmt+".";
+      btn.onclick=function(){mkICS(_s,_ds,_de,_d);btn.textContent="Oppna .ics-filen for att spara i Kalender";btn.className="rowbtn done";};
       row.appendChild(btn);
-      console.log("Knapp skapad for", day.ds, stFmt);
     }
     le.appendChild(row);
   });
@@ -225,6 +197,6 @@ function render(features){
 
 start();
 </script>
-<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v2.0</p>
+<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v2.1</p>
 </body>
 </html>
