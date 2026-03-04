@@ -157,11 +157,10 @@ function renderTaxa(features){
   var taxaMatch=rate.match(/taxa\s*(\d+)/i);
   if(taxaMatch)taxaNum=taxaMatch[1];
 
-if(taxaNum){
+  if(taxaNum){
     var smsEl=document.getElementById("SEC2sms");
     var btn=document.createElement("a");
-    btn.href="https://www.parkster.com/se/sv/";
-    btn.target="_blank";
+    btn.href="https://app.parkster.com";
     btn.className="btn";
     btn.style.cssText="background:#34c759;color:#fff;text-decoration:none;text-align:center;display:block;margin-bottom:12px";
     btn.textContent="Parkera i Parkster – ange zon "+taxaNum;
@@ -204,6 +203,6 @@ function render(features){
 
 start();
 </script>
-<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v2.3</p>
+<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v2.4</p>
 </body>
 </html>
