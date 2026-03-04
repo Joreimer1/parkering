@@ -4,6 +4,7 @@
 <meta charset="utf-8"/>
 <title>Parkering</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f2f2f7;color:#1c1c1e;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px}
@@ -43,8 +44,14 @@ h1{font-size:28px;font-weight:700;margin-bottom:28px;text-align:center}
     <div class="val" id="SEC1street"></div>
     <div class="sub" id="SEC1addr"></div>
   </div>
-  <button class="btn bg" onclick="onConfirm()">Ja, det stammer</button>
-  <button class="btn bs" onclick="onRetry()">Fel gata - forsok igen</button>
+<button class="btn bg" onclick="onConfirm()">Ja, det stammer</button>
+  <button class="btn bs" onclick="showMap()">Fel gata – peka pa kartan</button>
+  <div id="mapcard" style="display:none;width:100%;max-width:420px;margin-bottom:12px">
+    <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.07)">
+      <div id="map" style="height:320px"></div>
+      <div style="padding:12px;font-size:13px;color:#636366;text-align:center">Tryck på rätt gata på kartan</div>
+    </div>
+  </div>
 </div>
 
 <div class="sec" id="SEC2">
@@ -202,9 +209,50 @@ function render(features){
     le.appendChild(row);
   });
 }
+var map=null;
 
+function showMap(){
+  document.getElementById("mapcard").style.display="block";
+  if(!map){
+    var script=document.createElement("script");
+    script.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    script.onload=function(){
+      map=L.map("map").setView([lat,lon],17);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map);
+      // Markör på GPS-position
+      L.circleMarker([lat,lon],{radius:8,color:"#007aff",fillColor:"#007aff",fillOpacity:0.8}).addTo(map);
+      map.on("click",function(e){
+        onMapClick(e.latlng.lat,e.latlng.lng);
+      });
+    };
+    document.body.appendChild(script);
+  }
+}
+
+function onMapClick(clat,clon){
+  document.getElementById("mapcard").style.display="none";
+  setSt('<span class="spin"></span> Identifierar gatan...');
+  fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat="+clat+"&lon="+clon+"&addressdetails=1",
+    {headers:{"Accept":"application/json","User-Agent":"parkeringsapp/1.0"}})
+  .then(function(r){return r.json();})
+  .then(function(j){
+    var a=j.address||{};
+    var s=a.road||a.pedestrian||a.residential||a.street||a.quarter;
+    if(!s){showMap();return;}
+    gata=s;
+    lat=clat;lon=clon;
+    var full=a.house_number?s+" "+a.house_number:s;
+    var sub=a.suburb||a.city_district||"";
+    document.getElementById("SEC1street").textContent=s;
+    document.getElementById("SEC1addr").textContent=sub?full+", "+sub:full;
+    setSt("");
+    // Göm status och visa SEC1 igen med ny gata
+    showSec("SEC1");
+  })
+  .catch(function(){showMap();});
+}
 start();
 </script>
-<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v2.5</p>
+<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v2.6</p>
 </body>
 </html>
