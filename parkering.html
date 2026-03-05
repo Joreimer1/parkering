@@ -233,10 +233,11 @@ function render(features,clat,clon){
     var badge="";
     if(idx===0&&days.length>1){
       badge='<span class="badge nearest">Sannolikt närmast dig</span>';
-    } else if(dl!==null){
+    }
+    if(dl!==null){
       var bc=dl<=1?"badge urg":"badge";
       var bl=dl===0?"Ikvall!":dl===1?"Imorgon":"Om "+dl+" dagar";
-      badge='<span class="'+bc+'">'+bl+"</span>";
+      badge+='<span class="'+bc+'">'+bl+"</span>";
     }
 
     var row=document.createElement("div");row.className="srow";
