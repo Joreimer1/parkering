@@ -285,22 +285,6 @@ function renderPayStatus(rate,typ){
     if(current.kr)inner+=' ('+current.kr+' kr/tim)';
     inner+='<br>'+hLeft+'h '+mLeft+'min kvar</div>';
     inner+='</div>';
-
-    // Påminnelseknapp – 10 min innan avgiften slutar
-    var endDate=new Date(now);
-    endDate.setHours(endH,endM,0,0);
-    var warnDate=new Date(endDate.getTime()-10*60000);
-    if(warnDate>now){
-      var _ds=itsmp(warnDate),_de=itsmp(endDate);
-      inner+='<button class="rowbtn" style="margin-top:8px" id="paywarnbtn">Paminnelse 10 min innan avgiften slutar ('+endStr+')</button>';
-      div.innerHTML=inner;
-      el.appendChild(div);
-      document.getElementById("paywarnbtn").onclick=function(){
-        mkICS("Avgiften slutar snart – "+gata,_ds,_de,"Avgiften slutar kl "+endStr+" pa "+gata+".",10);
-        this.textContent="Oppna .ics-filen for att spara";this.className="rowbtn done";
-      };
-      return;
-    }
     div.innerHTML=inner;
   } else {
     // Fri parkering just nu
@@ -504,6 +488,6 @@ function onMapClick(clat,clon){
 
 start();
 </script>
-<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.6</p>
+<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.7</p>
 </body>
 </html>
