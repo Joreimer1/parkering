@@ -33,6 +33,11 @@ h1{font-size:28px;font-weight:700;margin-bottom:28px;text-align:center}
 .sec{display:none;width:100%;max-width:420px}
 .rowbtn{display:block;width:100%;padding:10px;border-radius:10px;border:none;font-size:15px;font-weight:600;cursor:pointer;background:#007aff;color:#fff;margin-top:4px}
 .rowbtn.done{background:#e5e5ea;color:#1c1c1e}
+.pstatus{border-radius:12px;padding:14px 16px;margin-bottom:8px;font-size:15px;line-height:1.5}
+.pstatus.pay{background:#fff3cd;border-left:4px solid #ffc107}
+.pstatus.free{background:#d1f2db;border-left:4px solid #34c759}
+.pstatus.warn{background:#f8d7da;border-left:4px solid #ff3b30}
+.pstatus strong{display:block;margin-bottom:4px}
 </style>
 </head>
 <body>
@@ -60,11 +65,16 @@ h1{font-size:28px;font-weight:700;margin-bottom:28px;text-align:center}
     <div class="lbl">Parkerad pa</div>
     <div class="val" id="SEC2street"></div>
   </div>
+  <!-- Betalningsstatus -->
+  <div id="SEC2paystatus"></div>
+  <!-- Parkeringstaxa -->
   <div class="card" id="SEC2taxacard" style="display:none">
     <div class="lbl">Parkeringsregler</div>
     <div id="SEC2taxa"></div>
   </div>
+  <!-- Parkster-knapp -->
   <div id="SEC2sms"></div>
+  <!-- Servicedagar -->
   <div class="card">
     <div class="lbl">Servicenatter - valj din sida</div>
     <div id="SEC2list"></div>
@@ -95,6 +105,7 @@ function onRetry(){showSec(null);start();}
 var DM={mandag:1,tisdag:2,onsdag:3,torsdag:4,fredag:5,lordag:6,sondag:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6,sunday:0};
 function dnum(s){if(!s)return null;var k=s.toLowerCase().trim().replace(/[\u00e5\u00e4]/g,"a").replace(/\u00f6/g,"o");return DM.hasOwnProperty(k)?DM[k]:null;}
 function nxtDate(n){var now=new Date(),diff=((n-now.getDay()+7)%7)||7,d=new Date(now);d.setDate(d.getDate()+diff);return d;}
+
 function ptime(s){
   if(s===null||s===undefined||s==="")return null;
   var n=+s;if(!isNaN(n)){return{h:Math.floor(n/100),m:n%100};}
@@ -102,20 +113,19 @@ function ptime(s){
 }
 function fmtTime(s){if(s===null||s===undefined||s==="")return"";var t=ptime(s);if(!t)return"";return String(t.h).padStart(2,"0")+":"+String(t.m).padStart(2,"0");}
 function itsmp(d){function z(n){return String(n).padStart(2,"0");}return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"T"+z(d.getHours())+z(d.getMinutes())+"00";}
+function timeToMins(s){var t=ptime(s);return t?t.h*60+t.m:null;}
+
 function mkICS(sum,ds,de,desc){
-  var c=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Pk//SV","BEGIN:VEVENT","UID:p"+Date.now()+"@pk","DTSTAMP:"+itsmp(new Date()),"DTSTART:"+ds,"DTEND:"+de,"SUMMARY:"+sum,"DESCRIPTION:"+desc,"BEGIN:VALARM","TRIGGER:-PT30M","ACTION:DISPLAY","DESCRIPTION:"+sum,"END:VALARM","END:VEVENT","END:VCALENDAR"].join("\r\n");
+  var c=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Pk//SV","BEGIN:VEVENT","UID:p"+Date.now()+"@pk","DTSTAMP:"+itsmp(new Date()),"DTSTART:"+ds,"DTEND:"+de,"SUMMARY:"+sum,"DESCRIPTION:"+desc,"BEGIN:VALARM","TRIGGER:-PT10M","ACTION:DISPLAY","DESCRIPTION:"+sum,"END:VALARM","END:VEVENT","END:VCALENDAR"].join("\r\n");
   var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([c],{type:"text/calendar"}));a.download="parkering.ics";document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
-// Haversine-avstånd i meter
 function haversine(lat1,lon1,lat2,lon2){
   var R=6371000,rad=function(v){return v*Math.PI/180;};
   var dLat=rad(lat2-lat1),dLon=rad(lon2-lon1);
   var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(rad(lat1))*Math.cos(rad(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
   return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
-
-// Minsta avstånd från koordinat till en features geometri
 function distToFeature(f,clat,clon){
   var geom=f.geometry||f.Geometry||(f.properties&&f.properties.geometry);
   if(!geom||!geom.coordinates)return Infinity;
@@ -128,6 +138,8 @@ function distToFeature(f,clat,clon){
     }
   return best;
 }
+
+function proxyUrl(target){return WU.replace(/\/+$/,"")+"/?target="+encodeURIComponent(target);}
 
 function start(){
   setSt('<span class="spin"></span> Hamtar din position...');
@@ -157,19 +169,140 @@ function geocode(){
 
 function onConfirm(){
   showSec(null);setSt('<span class="spin"></span> Hamtar parkeringsinfo...');
-  var tgt=BA+"/servicedagar/street/"+encodeURIComponent(gata)+"?outputFormat=json&apiKey="+AK;
-  var url=WU.replace(/\/+$/,"")+"/?target="+encodeURIComponent(tgt);
-  fetch(url,{headers:{"Accept":"application/json"}})
-  .then(function(r){return r.text().then(function(t){if(!r.ok)throw new Error("API "+r.status);return JSON.parse(t);});})
-  .then(function(data){
-    var f=(data&&data.type==="FeatureCollection")?data.features:Array.isArray(data)?data:Array.isArray(data.features)?data.features:[];
+
+  var tgtService=BA+"/servicedagar/street/"+encodeURIComponent(gata)+"?outputFormat=json&apiKey="+AK;
+  var tgtTillaten=BA+"/ptillaten/street/"+encodeURIComponent(gata)+"?outputFormat=json&apiKey="+AK;
+
+  // Hämta båda parallellt
+  Promise.all([
+    fetch(proxyUrl(tgtService),{headers:{"Accept":"application/json"}}).then(function(r){return r.text().then(function(t){return JSON.parse(t);});}).catch(function(){return null;}),
+    fetch(proxyUrl(tgtTillaten),{headers:{"Accept":"application/json"}}).then(function(r){return r.text().then(function(t){return JSON.parse(t);});}).catch(function(){return null;})
+  ]).then(function(results){
+    var dataService=results[0],dataTillaten=results[1];
+
+    var fService=(dataService&&dataService.type==="FeatureCollection")?dataService.features:Array.isArray(dataService)?dataService:Array.isArray(dataService&&dataService.features)?dataService.features:[];
+    var fTillaten=(dataTillaten&&dataTillaten.type==="FeatureCollection")?dataTillaten.features:Array.isArray(dataTillaten)?dataTillaten:Array.isArray(dataTillaten&&dataTillaten.features)?dataTillaten.features:[];
+
+    // Debug – logga första ptillaten-feature
+    if(fTillaten.length>0)console.log("ptillaten sample:",JSON.stringify(fTillaten[0].properties||fTillaten[0]));
+    else console.log("ptillaten: inga features");
+
     document.getElementById("SEC2street").textContent=gata;
+    document.getElementById("SEC2paystatus").innerHTML="";
+    document.getElementById("SEC2sms").innerHTML="";
+    document.getElementById("SEC2taxa").innerHTML="";
+    document.getElementById("SEC2taxacard").style.display="none";
+
     setSt("");showSec("SEC2");
-    renderTaxa(f);
-    render(f,lat,lon);
-  })
-  .catch(function(e){showErr("Fel vid hamtning",e.message);});
+    renderTaxa(fService);
+    renderPayStatus(fTillaten);
+    render(fService,lat,lon);
+  }).catch(function(e){showErr("Fel vid hamtning",e.message);});
 }
+
+// ── Betalningsstatus ──────────────────────────────────────────────────────────
+
+function renderPayStatus(features){
+  var el=document.getElementById("SEC2paystatus");
+  el.innerHTML="";
+  if(!features||!features.length){
+    el.innerHTML='<div class="pstatus free"><strong>Fri parkering</strong>Inga avgiftsregler registrerade för den här gatan.</div>';
+    return;
+  }
+
+  var now=new Date();
+  var nowMins=now.getHours()*60+now.getMinutes();
+  var nowDay=now.getDay(); // 0=sön, 1=mån...
+
+  // Hitta närmaste feature
+  var nearest=features[0];
+  var bestDist=distToFeature(features[0],lat,lon);
+  for(var i=1;i<features.length;i++){
+    var d=distToFeature(features[i],lat,lon);
+    if(d<bestDist){bestDist=d;nearest=features[i];}
+  }
+  var p=nearest.properties||nearest;
+
+  // Hämta regler – fältnamn kan variera, loggen visar oss rätt
+  var startDay  = p.START_WEEKDAY||p.Weekday||p.FROM_WEEKDAY||"";
+  var endDay    = p.END_WEEKDAY||p.TO_WEEKDAY||"";
+  var startTime = p.START_TIME!==undefined?p.START_TIME:p.StartTime!==undefined?p.StartTime:"";
+  var endTime   = p.END_TIME!==undefined?p.END_TIME:p.EndTime!==undefined?p.EndTime:"";
+  var maxTime   = p.MAX_TIME||p.MaxTime||p.max_time||p.DURATION||"";
+  var rate      = p.PARKING_RATE||p.Rate||"";
+
+  var startMins = timeToMins(startTime);
+  var endMins   = timeToMins(endTime);
+  var startDayN = dnum(startDay);
+  var endDayN   = endDay ? dnum(endDay) : startDayN;
+
+  // Kolla om avgift gäller nu
+  var dayMatch = false;
+  if(startDayN===null){
+    dayMatch=true; // Gäller alla dagar
+  } else if(endDayN!==null&&startDayN<=endDayN){
+    dayMatch=(nowDay>=startDayN&&nowDay<=endDayN);
+  } else {
+    dayMatch=(nowDay===startDayN);
+  }
+
+  var timeMatch = false;
+  if(startMins===null){
+    timeMatch=true;
+  } else if(endMins!==null){
+    timeMatch=(nowMins>=startMins&&nowMins<endMins);
+  }
+
+  var mustPay = dayMatch && timeMatch;
+
+  var html="";
+  if(mustPay){
+    var minsLeft = endMins!==null ? endMins-nowMins : null;
+    html='<div class="pstatus pay">';
+    html+='<strong>Avgift gäller nu</strong>';
+    if(endMins!==null) html+='Avgiften gäller till '+fmtTime(endTime)+'.';
+    if(rate) html+='<br><span style="font-size:13px;color:#636366">'+rate+'</span>';
+    html+='</div>';
+
+    // Max-tid-varning
+    if(maxTime){
+      var maxMins=+maxTime;
+      var deadline=new Date(now.getTime()+maxMins*60000);
+      html+='<div class="pstatus warn">';
+      html+='<strong>Max '+maxMins+' min parkering</strong>';
+      html+='Du måste flytta bilen senast '+deadline.getHours().toString().padStart(2,"0")+":"+deadline.getMinutes().toString().padStart(2,"0")+'.';
+      html+='</div>';
+
+      // Knapp för påminnelse om max-tid
+      var reminderDate=new Date(deadline.getTime()-5*60000); // 5 min innan
+      var btnEl=document.createElement("button");
+      btnEl.className="btn bp";
+      btnEl.textContent="Påminnelse om "+(maxMins-5)+" min (flytta bilen)";
+      btnEl.onclick=function(){
+        mkICS("Flytta bilen – "+gata,itsmp(reminderDate),itsmp(new Date(reminderDate.getTime()+5*60000)),"Max-tid slut på "+gata+". Flytta bilen nu!");
+        btnEl.textContent="Oppna .ics-filen for att spara";
+        btnEl.className="btn bs";
+      };
+      el.innerHTML=html;
+      el.appendChild(btnEl);
+      return;
+    }
+  } else {
+    html='<div class="pstatus free">';
+    html+='<strong>Fri parkering just nu</strong>';
+    if(startMins!==null&&!timeMatch&&nowMins<startMins){
+      html+='Avgift börjar kl '+fmtTime(startTime)+'.';
+    } else if(startDayN!==null&&!dayMatch){
+      html+='Avgift gäller '+startDay+(endDay?" – "+endDay:"")+'.';
+    } else {
+      html+='Ingen avgift gäller för tillfället.';
+    }
+    html+='</div>';
+  }
+  el.innerHTML=html;
+}
+
+// ── Taxa-info + Parkster ──────────────────────────────────────────────────────
 
 function renderTaxa(features){
   document.getElementById("SEC2sms").innerHTML="";
@@ -198,6 +331,8 @@ function renderTaxa(features){
   }
 }
 
+// ── Servicedagar ─────────────────────────────────────────────────────────────
+
 function render(features,clat,clon){
   var le=document.getElementById("SEC2list");le.innerHTML="";
   var days=[];
@@ -210,16 +345,9 @@ function render(features,clat,clon){
     var d=distToFeature(f,clat,clon);
     days.push({ds:ds,st:st,en:en,dist:d});
   });
-
-  // Sortera närmast först
   days.sort(function(a,b){return a.dist-b.dist;});
-
-  // Ta bort duplikater efter sortering (behåll närmaste instans)
   var deduped=[],seenKeys={};
-  days.forEach(function(d){
-    var k=d.ds+"|"+d.st+"|"+d.en;
-    if(!seenKeys[k]){seenKeys[k]=true;deduped.push(d);}
-  });
+  days.forEach(function(d){var k=d.ds+"|"+d.st+"|"+d.en;if(!seenKeys[k]){seenKeys[k]=true;deduped.push(d);}});
   days=deduped;
 
   if(!days.length){le.innerHTML='<p style="color:#636366;font-size:15px;padding:6px 0">Inga servicedagar registrerade.</p>';return;}
@@ -228,8 +356,6 @@ function render(features,clat,clon){
     var dn=dnum(day.ds),nd=dn!==null?nxtDate(dn):null;
     var dl=nd?Math.round((nd-new Date())/86400000):null;
     var stFmt=fmtTime(day.st),enFmt=fmtTime(day.en),t=ptime(day.st);
-
-    // Badge: "Sannolikt närmast" för första raden om det finns flera
     var badge="";
     if(idx===0&&days.length>1){
       badge='<span class="badge nearest">Sannolikt närmast dig</span>';
@@ -239,10 +365,8 @@ function render(features,clat,clon){
       var bl=dl===0?"Ikvall!":dl===1?"Imorgon":"Om "+dl+" dagar";
       badge+='<span class="'+bc+'">'+bl+"</span>";
     }
-
     var row=document.createElement("div");row.className="srow";
-    row.innerHTML='<div style="display:flex;justify-content:space-between;width:100%;align-items:center"><div><div class="sday">'+day.ds+'</div><div class="stim">'+stFmt+(stFmt&&enFmt?"–":"")+enFmt+"</div></div>"+badge+"</div>";
-
+    row.innerHTML='<div style="display:flex;justify-content:space-between;width:100%;align-items:center;flex-wrap:wrap;gap:4px"><div><div class="sday">'+day.ds+'</div><div class="stim">'+stFmt+(stFmt&&enFmt?"–":"")+enFmt+"</div></div><div style='display:flex;gap:4px;flex-wrap:wrap'>"+badge+"</div></div>";
     if(nd&&day.st!==undefined&&day.st!==""&&t){
       var es=new Date(nd);es.setHours(t.h,t.m,0,0);
       var ee=new Date(es);var te=ptime(day.en);
@@ -257,8 +381,9 @@ function render(features,clat,clon){
   });
 }
 
-var map=null;
+// ── Karta ─────────────────────────────────────────────────────────────────────
 
+var map=null;
 function showMap(){
   document.getElementById("mapcard").style.display="block";
   if(!map){
@@ -298,6 +423,6 @@ function onMapClick(clat,clon){
 
 start();
 </script>
-<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.4</p>
+<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.5</p>
 </body>
 </html>
