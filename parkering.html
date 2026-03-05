@@ -21,6 +21,7 @@ h1{font-size:28px;font-weight:700;margin-bottom:28px;text-align:center}
 .stim{font-size:14px;color:#636366}
 .badge{font-size:12px;border-radius:8px;padding:3px 8px;font-weight:600;background:#fff3cd;color:#856404}
 .urg{background:#f8d7da;color:#842029}
+.nearest{background:#e8f4fd;color:#0066cc}
 .btn{display:block;width:100%;max-width:420px;padding:16px;border-radius:14px;border:none;font-size:17px;font-weight:600;cursor:pointer;margin-bottom:12px;transition:opacity .15s}
 .btn:active{opacity:.75}
 .bp{background:#007aff;color:#fff}
@@ -44,7 +45,7 @@ h1{font-size:28px;font-weight:700;margin-bottom:28px;text-align:center}
     <div class="val" id="SEC1street"></div>
     <div class="sub" id="SEC1addr"></div>
   </div>
-<button class="btn bg" onclick="onConfirm()">Ja, det stammer</button>
+  <button class="btn bg" onclick="onConfirm()">Ja, det stammer</button>
   <button class="btn bs" onclick="showMap()">Fel gata – peka pa kartan</button>
   <div id="mapcard" style="display:none;width:100%;max-width:420px;margin-bottom:12px">
     <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.07)">
@@ -106,6 +107,28 @@ function mkICS(sum,ds,de,desc){
   var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([c],{type:"text/calendar"}));a.download="parkering.ics";document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
+// Haversine-avstånd i meter
+function haversine(lat1,lon1,lat2,lon2){
+  var R=6371000,rad=function(v){return v*Math.PI/180;};
+  var dLat=rad(lat2-lat1),dLon=rad(lon2-lon1);
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(rad(lat1))*Math.cos(rad(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// Minsta avstånd från koordinat till en features geometri
+function distToFeature(f,clat,clon){
+  var geom=f.geometry||f.Geometry||(f.properties&&f.properties.geometry);
+  if(!geom||!geom.coordinates)return Infinity;
+  var lines=geom.type==="LineString"?[geom.coordinates]:geom.type==="MultiLineString"?geom.coordinates:[];
+  var best=Infinity;
+  for(var i=0;i<lines.length;i++)
+    for(var j=0;j<lines[i].length;j++){
+      var d=haversine(clat,clon,lines[i][j][1],lines[i][j][0]);
+      if(d<best)best=d;
+    }
+  return best;
+}
+
 function start(){
   setSt('<span class="spin"></span> Hamtar din position...');
   if(!navigator.geolocation){showErr("GPS saknas","Webbläsaren stoeder inte platstjanster.");return;}
@@ -143,13 +166,13 @@ function onConfirm(){
     document.getElementById("SEC2street").textContent=gata;
     setSt("");showSec("SEC2");
     renderTaxa(f);
-    render(f);
+    render(f,lat,lon);
   })
   .catch(function(e){showErr("Fel vid hamtning",e.message);});
 }
 
 function renderTaxa(features){
-  document.getElementById("SEC2sms").innerHTML="";  // ← lägg till denna rad
+  document.getElementById("SEC2sms").innerHTML="";
   document.getElementById("SEC2taxa").innerHTML="";
   document.getElementById("SEC2taxacard").style.display="none";
   if(!features.length)return;
@@ -161,44 +184,64 @@ function renderTaxa(features){
   var rate=p.PARKING_RATE||"";if(rate)html+='<div class="taxa">'+rate+'</div>';
   var dist=p.PARKING_DISTRICT||p.CITY_DISTRICT||"";if(dist)html+='<div style="font-size:13px;color:#8e8e93;margin-top:6px">Distrikt: '+dist+'</div>';
   if(html){document.getElementById("SEC2taxa").innerHTML=html;document.getElementById("SEC2taxacard").style.display="block";}
-  var fid=p.FID||p.ZONE||"";
-// Extrahera taxanummer ur PARKING_RATE, t.ex. "taxa 3: 20 kr..." -> "3"
   var taxaNum=null;
   var taxaMatch=rate.match(/taxa\s*(\d+)/i);
   if(taxaMatch)taxaNum=taxaMatch[1];
-
-if(taxaNum){
+  if(taxaNum){
     var smsEl=document.getElementById("SEC2sms");
     var btn=document.createElement("button");
     btn.className="btn";
     btn.style.cssText="background:#34c759;color:#fff;margin-bottom:12px";
     btn.textContent="Köp biljett i Parkster – zon "+taxaNum;
-    btn.onclick=function(){
-      window.location="parkster://start?zone="+taxaNum;
-    };
+    btn.onclick=function(){window.location="parkster://start?zone="+taxaNum;};
     smsEl.appendChild(btn);
   }
 }
 
-function render(features){
+function render(features,clat,clon){
   var le=document.getElementById("SEC2list");le.innerHTML="";
-  var seen={},days=[];
+  var days=[];
   features.forEach(function(f){
     var p=f.properties||f;
     var ds=p.START_WEEKDAY||p.WEEKDAY||p.Weekday||p.weekday||p.STARTDAY||"";
     var st=p.START_TIME!==undefined?p.START_TIME:p.StartTime!==undefined?p.StartTime:p.start_time!==undefined?p.start_time:"";
     var en=p.END_TIME!==undefined?p.END_TIME:p.EndTime!==undefined?p.EndTime:p.end_time!==undefined?p.end_time:"";
-    var k=ds+"|"+st+"|"+en;if(!ds||seen[k])return;seen[k]=true;days.push({ds:ds,st:st,en:en});
+    if(!ds)return;
+    var d=distToFeature(f,clat,clon);
+    days.push({ds:ds,st:st,en:en,dist:d});
   });
+
+  // Sortera närmast först
+  days.sort(function(a,b){return a.dist-b.dist;});
+
+  // Ta bort duplikater efter sortering (behåll närmaste instans)
+  var deduped=[],seenKeys={};
+  days.forEach(function(d){
+    var k=d.ds+"|"+d.st+"|"+d.en;
+    if(!seenKeys[k]){seenKeys[k]=true;deduped.push(d);}
+  });
+  days=deduped;
+
   if(!days.length){le.innerHTML='<p style="color:#636366;font-size:15px;padding:6px 0">Inga servicedagar registrerade.</p>';return;}
-  days.forEach(function(day){
+
+  days.forEach(function(day,idx){
     var dn=dnum(day.ds),nd=dn!==null?nxtDate(dn):null;
     var dl=nd?Math.round((nd-new Date())/86400000):null;
     var stFmt=fmtTime(day.st),enFmt=fmtTime(day.en),t=ptime(day.st);
+
+    // Badge: "Sannolikt närmast" för första raden om det finns flera
     var badge="";
-    if(dl!==null){var bc=dl<=1?"badge urg":"badge";var bl=dl===0?"Ikvall!":dl===1?"Imorgon":"Om "+dl+" dagar";badge='<span class="'+bc+'">'+bl+"</span>";}
+    if(idx===0&&days.length>1){
+      badge='<span class="badge nearest">Sannolikt närmast dig</span>';
+    } else if(dl!==null){
+      var bc=dl<=1?"badge urg":"badge";
+      var bl=dl===0?"Ikvall!":dl===1?"Imorgon":"Om "+dl+" dagar";
+      badge='<span class="'+bc+'">'+bl+"</span>";
+    }
+
     var row=document.createElement("div");row.className="srow";
     row.innerHTML='<div style="display:flex;justify-content:space-between;width:100%;align-items:center"><div><div class="sday">'+day.ds+'</div><div class="stim">'+stFmt+(stFmt&&enFmt?"–":"")+enFmt+"</div></div>"+badge+"</div>";
+
     if(nd&&day.st!==undefined&&day.st!==""&&t){
       var es=new Date(nd);es.setHours(t.h,t.m,0,0);
       var ee=new Date(es);var te=ptime(day.en);
@@ -212,6 +255,7 @@ function render(features){
     le.appendChild(row);
   });
 }
+
 var map=null;
 
 function showMap(){
@@ -222,18 +266,12 @@ function showMap(){
     script.onload=function(){
       map=L.map("map").setView([lat,lon],17);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map);
-      // Markör på GPS-position
       L.circleMarker([lat,lon],{radius:8,color:"#007aff",fillColor:"#007aff",fillOpacity:0.8}).addTo(map);
-      map.on("click",function(e){
-        onMapClick(e.latlng.lat,e.latlng.lng);
-      });
+      map.on("click",function(e){onMapClick(e.latlng.lat,e.latlng.lng);});
     };
     document.body.appendChild(script);
-     } else {
-    // Kartan finns redan – tvinga omritning
-    setTimeout(function(){
-      map.invalidateSize();
-    }, 100);
+  } else {
+    setTimeout(function(){map.invalidateSize();},100);
   }
 }
 
@@ -247,20 +285,18 @@ function onMapClick(clat,clon){
     var a=j.address||{};
     var s=a.road||a.pedestrian||a.residential||a.street||a.quarter;
     if(!s){showMap();return;}
-    gata=s;
-    lat=clat;lon=clon;
+    gata=s;lat=clat;lon=clon;
     var full=a.house_number?s+" "+a.house_number:s;
     var sub=a.suburb||a.city_district||"";
     document.getElementById("SEC1street").textContent=s;
     document.getElementById("SEC1addr").textContent=sub?full+", "+sub:full;
-    setSt("");
-    // Göm status och visa SEC1 igen med ny gata
-    showSec("SEC1");
+    setSt("");showSec("SEC1");
   })
   .catch(function(){showMap();});
 }
+
 start();
 </script>
-<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.2</p>
+<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.3</p>
 </body>
 </html>
