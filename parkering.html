@@ -295,12 +295,15 @@ function renderPayStatus(rate,typ){
       var nextH=Math.floor(next.seg.startMin/60),nextM=next.seg.startMin%60;
       var nextStr=String(nextH).padStart(2,"0")+":"+String(nextM).padStart(2,"0");
       var daysName=["söndag","måndag","tisdag","onsdag","torsdag","fredag","lördag"];
-      var whenStr=next.minsUntil<1440?"idag kl "+nextStr:(next.minsUntil<2880?"imorgon kl "+nextStr:daysName[next.day]+" kl "+nextStr);
-      inner2+='<div style="font-size:14px">Avgift börjar '+whenStr+'</div>';
-
-      // Påminnelse när avgiften börjar
       var startDate=new Date(now);
-      var daysAhead=Math.floor(next.minsUntil/1440);
+      var daysAhead=0;
+      var minsToMidnight=(24*60)-(now.getHours()*60+now.getMinutes());
+      if(next.minsUntil>=minsToMidnight){
+        var rem=next.minsUntil-minsToMidnight;
+        daysAhead=1+Math.floor(rem/1440);
+      }
+      var whenStr=daysAhead===0?"idag kl "+nextStr:(daysAhead===1?"imorgon kl "+nextStr:daysName[next.day]+" kl "+nextStr);
+      inner2+='<div style="font-size:14px">Avgift börjar '+whenStr+'</div>';
       startDate.setDate(startDate.getDate()+daysAhead);
       startDate.setHours(nextH,nextM,0,0);
       var warnDate2=new Date(startDate.getTime()-10*60000);
