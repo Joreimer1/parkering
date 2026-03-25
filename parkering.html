@@ -306,7 +306,7 @@ function renderPayStatus(rate,typ){
       inner2+='<div style="font-size:14px">Avgift börjar '+whenStr+'</div>';
       startDate.setDate(startDate.getDate()+daysAhead);
       startDate.setHours(nextH,nextM,0,0);
-      var warnDate2=new Date(startDate.getTime()-10*60000);
+      var warnDate2=new Date(startDate.getTime()-30*60000);
       var endDate2=new Date(startDate.getTime()+60*60000);
       if(warnDate2>now){
         inner2+='</div>';
@@ -315,7 +315,7 @@ function renderPayStatus(rate,typ){
         div.innerHTML=inner2;
         el.appendChild(div);
         document.getElementById("payStartBtn").onclick=function(){
-          mkICS("Avgiften börjar – "+gata,_ds2,_de2,"Avgiften börjar kl "+nextStr+" pa "+gata+".",10);
+          mkICS("Avgiften börjar – "+gata,_ds2,_de2,"Avgiften börjar kl "+nextStr+" pa "+gata+".",30);
           this.textContent="Oppna .ics-filen for att spara";this.className="rowbtn done";
         };
         return;
@@ -445,7 +445,7 @@ function render(features,clat,clon){
       var when=dl===0?"ikvall":dl===1?"imorgon":day.ds.toLowerCase();
       var btn=document.createElement("button");btn.className="rowbtn";btn.textContent="Paminnelse "+when+" kl "+stFmt;
       var _s="Flytta bilen - "+gata,_ds=itsmp(es),_de=itsmp(ee),_d="Servicenatt pa "+gata+". Flytta bilen innan kl "+stFmt+".";
-      btn.onclick=function(){mkICS(_s,_ds,_de,_d,30);btn.textContent="Oppna .ics-filen for att spara i Kalender";btn.className="rowbtn done";};
+      btn.onclick=function(){mkICS(_s,_ds,_de,_d,360);btn.textContent="Oppna .ics-filen for att spara i Kalender";btn.className="rowbtn done";};
       row.appendChild(btn);
     }
     le.appendChild(row);
