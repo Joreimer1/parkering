@@ -361,7 +361,7 @@ function renderTaxa(features){
     var btn=document.createElement("button");
     btn.className="btn";
     btn.style.cssText="background:#34c759;color:#fff;margin-bottom:12px";
-    btn.textContent="Köp biljett i Parkster – zon "+taxaNum;
+    btn.textContent="Köp biljett i Parkster – Taxa "+taxaNum;
     btn.onclick=function(){window.location="parkster://start?zone="+taxaNum;};
     document.getElementById("SEC2sms").appendChild(btn);
   }
@@ -491,6 +491,6 @@ function onMapClick(clat,clon){
 
 start();
 </script>
-<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.8</p>
+<p style="text-align:center;font-size:11px;color:#c7c7cc;margin-top:32px">v1.9</p>
 </body>
 </html>
