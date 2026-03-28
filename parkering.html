@@ -311,7 +311,7 @@ function renderPayStatus(rate,typ){
       if(warnDate2>now){
         inner2+='</div>';
         var _ds2=itsmp(warnDate2),_de2=itsmp(endDate2);
-        inner2+='<button class="rowbtn" style="margin-top:8px;background:#856404;color:#fff" id="payStartBtn">Paminnelse nar avgiften börjar ('+nextStr+')</button>';
+        inner2+='<button class="rowbtn" style="margin-top:8px;background:#856404;color:#fff" id="payStartBtn">Påminnelse nar avgiften börjar ('+nextStr+')</button>';
         div.innerHTML=inner2;
         el.appendChild(div);
         document.getElementById("payStartBtn").onclick=function(){
@@ -443,7 +443,7 @@ function render(features,clat,clon){
       var ee=new Date(es);var te=ptime(day.en);
       if(te)ee.setHours(te.h,te.m,0,0);else ee.setHours(t.h+1,t.m,0,0);
       var when=dl===0?"ikvall":dl===1?"imorgon":day.ds.toLowerCase();
-      var btn=document.createElement("button");btn.className="rowbtn";btn.textContent="Paminnelse "+when+" kl "+stFmt;
+      var btn=document.createElement("button");btn.className="rowbtn";btn.textContent="Påminnelse "+when+" kl "+stFmt;
       var _s="Flytta bilen - "+gata,_ds=itsmp(es),_de=itsmp(ee),_d="Servicenatt pa "+gata+". Flytta bilen innan kl "+stFmt+".";
       btn.onclick=function(){mkICS(_s,_ds,_de,_d,360);btn.textContent="Oppna .ics-filen for att spara i Kalender";btn.className="rowbtn done";};
       row.appendChild(btn);
